@@ -178,7 +178,10 @@ export default function ProductFormModal({ open, product, onClose, onSaved }: Pr
         toast.success('Product imeongezwa!')
       }
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Kuna tatizo.')
+      const msg = err instanceof Error
+        ? err.message
+        : (err as { message?: string })?.message ?? JSON.stringify(err)
+      toast.error(msg, { duration: 8000 })
     } finally {
       setSaving(false)
     }
