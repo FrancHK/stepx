@@ -1,0 +1,609 @@
+'use client'
+
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { createClient } from '@/lib/supabase'
+import { toast } from 'sonner'
+import {
+  Plus, Loader2, Package, Tag, DollarSign,
+  Layers, ImageIcon, Settings2, X, CloudUpload, Upload
+} from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import type { Product, Category, AgeGroup } from '@/lib/types'
+import { CATEGORY_LABELS, AGE_GROUP_LABELS } from '@/lib/utils'
+
+interface Props {
+  open: boolean
+  product: Product | null
+  onClose: () => void
+  onSaved: (product: Product, isNew: boolean) => void
+}
+
+const EMPTY: Omit<Product, 'id' | 'created_at'> = {
+  name: '', brand: '', category: 'yebo', description: '',
+  wholesale_price: 0, retail_price: 0, stock: {}, images: [],
+  active: true, age_group: 'kijana', color: {}, size_type: 'single',
+  is_trending: false, is_new: false,
+}
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+
+function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
+  return (
+    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+      {children}{required && <span className="text-red-500 ml-0.5">*</span>}
+    </Label>
+  )
+}
+
+function SectionTitle({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-3">
+      <div className="w-6 h-6 rounded-md bg-[#0D47A1]/10 flex items-center justify-center">
+        <Icon className="w-3.5 h-3.5 text-[#0D47A1]" />
+      </div>
+      <span className="text-xs font-bold text-[#0D47A1] uppercase tracking-widest">{title}</span>
+      <div className="flex-1 h-px bg-blue-100" />
+    </div>
+  )
+}
+
+interface UploadedImage {
+  url: string
+  name: string
+  uploading?: boolean
+  error?: boolean
+  local?: string
+}
+
+export default function ProductFormModal({ open, product, onClose, onSaved }: Props) {
+  const [form, setForm] = useState(EMPTY)
+  const [rangeFrom, setRangeFrom] = useState('')
+  const [rangeTo, setRangeTo] = useState('')
+  const [rangeQty, setRangeQty] = useState('')
+  const [images, setImages] = useState<UploadedImage[]>([])
+  const [saving, setSaving] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const isEdit = !!product
+
+  const from = parseInt(rangeFrom) || 0
+  const to = parseInt(rangeTo) || 0
+  const qty = parseInt(rangeQty) || 0
+  const sizeCount = (from > 0 && to >= from) ? (to - from + 1) : 0
+  const totalPcs = sizeCount * qty
+  const sizeList = sizeCount > 0 ? Array.from({ length: sizeCount }, (_, i) => from + i) : []
+
+  useEffect(() => {
+    if (product) {
+      setForm({
+        name: product.name, brand: product.brand, category: product.category,
+        description: product.description, wholesale_price: product.wholesale_price,
+        retail_price: product.retail_price, stock: product.stock ?? {},
+        images: product.images ?? [], active: product.active, age_group: product.age_group,
+        color: product.color ?? {}, size_type: product.size_type,
+        is_trending: product.is_trending, is_new: product.is_new,
+      })
+      const keys = Object.keys(product.stock ?? {}).map(Number).filter(Boolean).sort((a, b) => a - b)
+      const vals = Object.values(product.stock ?? {})
+      setRangeFrom(keys.length > 0 ? String(keys[0]) : '')
+      setRangeTo(keys.length > 0 ? String(keys[keys.length - 1]) : '')
+      setRangeQty(vals.length > 0 ? String(vals[0]) : '')
+      setImages((product.images ?? []).map(url => ({ url, name: url.split('/').pop() ?? 'picha' })))
+    } else {
+      setForm(EMPTY)
+      setRangeFrom('')
+      setRangeTo('')
+      setRangeQty('')
+      setImages([])
+    }
+  }, [product, open])
+
+  function set<K extends keyof typeof EMPTY>(key: K, value: typeof EMPTY[K]) {
+    setForm(prev => ({ ...prev, [key]: value }))
+  }
+
+  async function uploadFile(file: File): Promise<string | null> {
+    const ext = file.name.split('.').pop()
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const supabase = createClient()
+    const { error } = await supabase.storage.from('products').upload(path, file, {
+      contentType: file.type, upsert: false,
+    })
+    if (error) {
+      toast.error(`Kosa la kupakia: ${error.message}`)
+      return null
+    }
+    return `${SUPABASE_URL}/storage/v1/object/public/products/${path}`
+  }
+
+  const handleFiles = useCallback(async (files: FileList | File[]) => {
+    const fileArr = Array.from(files).filter(f => f.type.startsWith('image/'))
+    if (!fileArr.length) return
+    const startIdx = images.length
+    const newEntries: UploadedImage[] = fileArr.map(f => ({
+      url: '', name: f.name, uploading: true, local: URL.createObjectURL(f),
+    }))
+    setImages(prev => [...prev, ...newEntries])
+    const results = await Promise.all(
+      fileArr.map((file, i) => uploadFile(file).then(url => ({ idx: startIdx + i, url })))
+    )
+    setImages(prev => {
+      const next = [...prev]
+      results.forEach(({ idx, url }) => {
+        if (next[idx]) {
+          next[idx] = url
+            ? { ...next[idx], url, uploading: false }
+            : { ...next[idx], uploading: false, error: true }
+          if (!url) { /* kosa limeonyeshwa ndani ya uploadFile */ }
+        }
+      })
+      return next
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [images.length])
+
+  function removeImage(index: number) {
+    setImages(prev => {
+      const img = prev[index]
+      if (img?.local) URL.revokeObjectURL(img.local)
+      return prev.filter((_, i) => i !== index)
+    })
+  }
+
+  async function handleSave() {
+    if (!form.name || !form.brand) { toast.error('Jaza jina na brand.'); return }
+    if (images.some(i => i.uploading)) { toast.error('Subiri picha ziishe kupakiwa.'); return }
+    if (sizeCount === 0) { toast.error('Weka namba za saizi sahihi.'); return }
+    setSaving(true)
+    try {
+      const stock: Record<string, number> = {}
+      sizeList.forEach(size => { stock[String(size)] = qty })
+      const finalImages = images.filter(i => i.url && !i.error).map(i => i.url)
+      const payload = { ...form, stock, images: finalImages }
+      const supabase = createClient()
+      if (isEdit && product) {
+        const { data, error } = await supabase.from('products').update(payload).eq('id', product.id).select().single()
+        if (error) throw error
+        onSaved(data as Product, false)
+        toast.success('Product imesasishwa!')
+      } else {
+        const { data, error } = await supabase.from('products').insert(payload).select().single()
+        if (error) throw error
+        onSaved(data as Product, true)
+        toast.success('Product imeongezwa!')
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Kuna tatizo.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const uploadingCount = images.filter(i => i.uploading).length
+
+  return (
+    <Dialog open={open} onOpenChange={o => !o && onClose()}>
+      <DialogContent className="max-w-[96vw] sm:max-w-[96vw] w-[1500px] h-[97vh] p-0 gap-0 flex flex-col overflow-hidden rounded-2xl shadow-2xl border-0">
+
+        {/* ── HEADER ── */}
+        <DialogHeader className="flex-shrink-0 px-10 py-6 bg-gradient-to-r from-[#0D47A1] via-[#1565C0] to-[#1976D2] relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.04\'%3E%3Ccircle cx=\'30\' cy=\'30\' r=\'30\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]" />
+          <div className="relative flex items-center gap-5">
+            <div className="w-13 h-13 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center backdrop-blur-sm shadow-inner flex-shrink-0" style={{ width: 52, height: 52 }}>
+              <Package className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="text-white text-xl font-bold tracking-tight">
+                {isEdit ? 'Hariri Bidhaa' : 'Ongeza Bidhaa Mpya'}
+              </DialogTitle>
+              <p className="text-blue-200 text-sm mt-0.5 font-medium">
+                {isEdit ? 'Sasisha taarifa za bidhaa iliyopo kwenye duka' : 'Jaza fomu hii kuongeza bidhaa mpya kwenye duka'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-blue-200/80 bg-white/10 border border-white/15 rounded-full px-3.5 py-1.5 backdrop-blur-sm flex-shrink-0">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              {isEdit ? 'Hali ya Kuhariri' : 'Bidhaa Mpya'}
+            </div>
+          </div>
+        </DialogHeader>
+
+        {/* ── BODY: two columns ── */}
+        <div className="flex flex-1 min-h-0 bg-[#F8FAFC]">
+
+          {/* LEFT COLUMN */}
+          <div className="flex flex-col w-[55%] border-r border-slate-200/70 overflow-y-auto">
+            <div className="flex-1 px-10 py-8 space-y-6">
+
+              {/* Basic Info Card */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+                  <SectionTitle icon={Tag} title="Taarifa za Msingi" />
+                </div>
+                <div className="px-6 py-5 space-y-5">
+                  <div className="grid grid-cols-2 gap-5">
+                    <div className="space-y-2">
+                      <FieldLabel required>Jina la Bidhaa</FieldLabel>
+                      <Input
+                        value={form.name}
+                        onChange={e => set('name', e.target.value)}
+                        placeholder="mfano: Nike Air Max 270"
+                        className="h-11 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <FieldLabel required>Brand</FieldLabel>
+                      <Input
+                        value={form.brand}
+                        onChange={e => set('brand', e.target.value)}
+                        placeholder="mfano: Nike"
+                        className="h-11 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-5">
+                    <div className="space-y-2">
+                      <FieldLabel>Kategoria</FieldLabel>
+                      <Select value={form.category} onValueChange={v => set('category', v as Category)}>
+                        <SelectTrigger className="h-11 border-slate-200 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors focus:ring-2 focus:ring-[#0D47A1]/10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
+                            <SelectItem key={k} value={k} className="text-sm">{v}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <FieldLabel>Kundi la Umri</FieldLabel>
+                      <Select value={form.age_group} onValueChange={v => set('age_group', v as AgeGroup)}>
+                        <SelectTrigger className="h-11 border-slate-200 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors focus:ring-2 focus:ring-[#0D47A1]/10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(AGE_GROUP_LABELS).map(([k, v]) => (
+                            <SelectItem key={k} value={k} className="text-sm">{v}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <FieldLabel>Maelezo</FieldLabel>
+                    <textarea
+                      value={form.description}
+                      onChange={e => set('description', e.target.value)}
+                      rows={4}
+                      placeholder="Elezea bidhaa hii kwa undani — vifaa, rangi, ubora..."
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#0D47A1]/10 focus:border-[#0D47A1] placeholder:text-slate-300 transition-colors shadow-sm hover:border-slate-300"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pricing Card */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+                  <SectionTitle icon={DollarSign} title="Bei" />
+                </div>
+                <div className="px-6 py-5 space-y-4">
+
+                  {/* Bei ya Jumla */}
+                  <div className="rounded-xl border border-slate-200 overflow-hidden">
+                    <div className="grid grid-cols-2 divide-x divide-slate-200">
+                      <div className="px-5 py-4 space-y-2">
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Bei ya Pc Moja</p>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[#0D47A1] bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded pointer-events-none">TZS</span>
+                          <Input
+                            type="number"
+                            value={form.wholesale_price || ''}
+                            onChange={e => set('wholesale_price', parseFloat(e.target.value) || 0)}
+                            placeholder="0"
+                            className="pl-14 h-11 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm font-semibold"
+                          />
+                        </div>
+                      </div>
+                      <div className="px-5 py-4 space-y-2">
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                          Bei ya Mfuko Mzima {totalPcs > 0 && <span className="text-[#0D47A1]">({totalPcs} pcs)</span>}
+                        </p>
+                        <div className={`h-11 rounded-lg flex items-center px-4 gap-2.5 transition-colors ${
+                          totalPcs > 0 && form.wholesale_price > 0
+                            ? 'bg-[#0D47A1]/5 border border-[#0D47A1]/20'
+                            : 'bg-slate-50 border border-slate-100'
+                        }`}>
+                          <span className="text-[10px] font-bold text-[#0D47A1] bg-blue-100 border border-blue-200 px-1.5 py-0.5 rounded flex-shrink-0">TZS</span>
+                          <span className={`text-base font-bold tracking-tight ${
+                            totalPcs > 0 && form.wholesale_price > 0 ? 'text-[#0D47A1]' : 'text-slate-300'
+                          }`}>
+                            {totalPcs > 0 && form.wholesale_price > 0
+                              ? (form.wholesale_price * totalPcs).toLocaleString()
+                              : '—'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Size & Stock Card */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+                  <SectionTitle icon={Layers} title="Saizi & Stoki" />
+                </div>
+                <div className="px-6 py-5 space-y-4">
+
+                  {/* Inputs: from / to / qty */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <FieldLabel required>Namba ya Kwanza</FieldLabel>
+                      <Input
+                        type="number"
+                        placeholder="mfano: 36"
+                        value={rangeFrom}
+                        onChange={e => setRangeFrom(e.target.value)}
+                        className="h-11 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm shadow-sm text-center font-semibold"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <FieldLabel required>Namba ya Mwisho</FieldLabel>
+                      <Input
+                        type="number"
+                        placeholder="mfano: 45"
+                        value={rangeTo}
+                        onChange={e => setRangeTo(e.target.value)}
+                        className="h-11 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm shadow-sm text-center font-semibold"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <FieldLabel required>Pcs kwa Saizi Moja</FieldLabel>
+                      <Input
+                        type="number"
+                        placeholder="mfano: 3"
+                        value={rangeQty}
+                        onChange={e => setRangeQty(e.target.value)}
+                        className="h-11 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm shadow-sm text-center font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Live preview */}
+                  {sizeCount > 0 && (
+                    <div className="rounded-xl border border-[#0D47A1]/15 bg-[#0D47A1]/4 overflow-hidden">
+                      {/* Saizi badges */}
+                      <div className="px-4 py-3 flex flex-wrap gap-1.5">
+                        {sizeList.map(s => (
+                          <div key={s} className="w-9 h-9 rounded-lg bg-white border border-[#0D47A1]/20 shadow-sm flex items-center justify-center">
+                            <span className="text-xs font-bold text-[#0D47A1]">{s}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Jumla */}
+                      <div className="border-t border-[#0D47A1]/10 px-4 py-3 flex items-center justify-between bg-white/60">
+                        <div className="flex items-center gap-4 text-xs text-slate-500">
+                          <span>Saizi <strong className="text-slate-700">{sizeCount}</strong></span>
+                          <span>×</span>
+                          <span>Pcs <strong className="text-slate-700">{qty}</strong></span>
+                          <span>=</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">Jumla ya Stoki</span>
+                          <div className="bg-[#0D47A1] text-white text-sm font-bold px-4 py-1.5 rounded-lg shadow-sm">
+                            {totalPcs} pcs
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Empty hint */}
+                  {sizeCount === 0 && (
+                    <div className="rounded-xl border border-dashed border-slate-200 px-4 py-5 text-center">
+                      <p className="text-xs text-slate-400">Weka namba ya kwanza, ya mwisho, na idadi — saizi na jumla vitaonekana hapa</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div className="flex flex-col w-[45%] overflow-y-auto">
+            <div className="flex-1 px-10 py-8 space-y-6">
+
+              {/* Images Card */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+                  <SectionTitle icon={ImageIcon} title="Picha za Bidhaa" />
+                </div>
+                <div className="px-6 py-5 space-y-4">
+
+                  {/* Drop Zone */}
+                  <div
+                    onDragOver={e => { e.preventDefault(); setDragging(true) }}
+                    onDragLeave={() => setDragging(false)}
+                    onDrop={e => { e.preventDefault(); setDragging(false); handleFiles(e.dataTransfer.files) }}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-200 ${
+                      dragging
+                        ? 'border-[#0D47A1] bg-[#0D47A1]/5 scale-[1.01] shadow-md'
+                        : 'border-slate-200 hover:border-[#0D47A1]/40 hover:bg-slate-50'
+                    }`}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={e => e.target.files && handleFiles(e.target.files)}
+                    />
+                    <div className="flex flex-col items-center gap-4">
+                      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-200 ${
+                        dragging ? 'bg-[#0D47A1]/15 scale-110' : 'bg-slate-100'
+                      }`}>
+                        <CloudUpload className={`w-8 h-8 transition-colors ${dragging ? 'text-[#0D47A1]' : 'text-slate-400'}`} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-700">
+                          {dragging ? 'Acha picha hapa!' : 'Buruta picha hapa'}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1.5">au <span className="text-[#0D47A1] font-semibold underline underline-offset-2">bonyeza kuchagua kutoka kwenye kifaa</span></p>
+                        <p className="text-[10px] text-slate-300 mt-2 uppercase tracking-widest">JPG · PNG · WebP · Max 5MB</p>
+                      </div>
+                    </div>
+                    {uploadingCount > 0 && (
+                      <div className="mt-4 flex items-center justify-center gap-2 text-xs text-[#0D47A1] font-semibold bg-blue-50 rounded-xl px-4 py-2">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Inapakia picha {uploadingCount}...
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Image Grid */}
+                  {images.length > 0 && (
+                    <div className="grid grid-cols-4 gap-3">
+                      {images.map((img, i) => (
+                        <div
+                          key={i}
+                          className={`relative aspect-square rounded-xl overflow-hidden border-2 bg-slate-50 transition-all group ${
+                            img.error ? 'border-red-300' : img.uploading ? 'border-blue-200 animate-pulse' : 'border-transparent shadow-md hover:shadow-lg hover:scale-[1.02]'
+                          }`}
+                        >
+                          {(img.local || img.url) && !img.error && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={img.local ?? img.url}
+                              alt={img.name}
+                              className={`w-full h-full object-cover transition-opacity ${img.uploading ? 'opacity-40' : 'opacity-100'}`}
+                            />
+                          )}
+                          {img.error && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-red-50">
+                              <X className="w-6 h-6 text-red-400" />
+                              <p className="text-[10px] text-red-400 font-semibold">Imeshindwa</p>
+                            </div>
+                          )}
+                          {img.uploading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+                              <Loader2 className="w-6 h-6 text-[#0D47A1] animate-spin" />
+                            </div>
+                          )}
+                          {!img.uploading && !img.error && img.url && (
+                            <div className="absolute bottom-1.5 left-1.5 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center shadow-md">
+                              <Upload className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeImage(i)}
+                            className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/60 hover:bg-red-500 rounded-full flex items-center justify-center text-white transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="aspect-square rounded-xl border-2 border-dashed border-slate-200 hover:border-[#0D47A1]/50 hover:bg-blue-50/40 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer group"
+                      >
+                        <Plus className="w-5 h-5 text-slate-300 group-hover:text-[#0D47A1] transition-colors" />
+                        <span className="text-[10px] text-slate-300 group-hover:text-[#0D47A1] font-semibold transition-colors">Ongeza</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Settings Card */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+                  <SectionTitle icon={Settings2} title="Mipangilio ya Bidhaa" />
+                </div>
+                <div className="px-6 py-5 space-y-3">
+                  {([
+                    { key: 'active', label: 'Inauzwa Sasa', desc: 'Bidhaa inaonekana kwa wateja', dot: 'bg-emerald-500', activeBg: 'bg-emerald-50/60 border-emerald-100' },
+                    { key: 'is_trending', label: 'Inabweka', desc: 'Bidhaa inayouzika zaidi dukani', dot: 'bg-orange-500', activeBg: 'bg-orange-50/60 border-orange-100' },
+                    { key: 'is_new', label: 'Arrival Mpya', desc: 'Bidhaa mpya iliyofika dukani', dot: 'bg-blue-500', activeBg: 'bg-blue-50/60 border-blue-100' },
+                  ] as const).map(({ key, label, desc, dot, activeBg }) => (
+                    <div
+                      key={key}
+                      className={`flex items-center justify-between px-5 py-3.5 rounded-xl border transition-all duration-200 cursor-pointer ${
+                        form[key] ? activeBg : 'bg-slate-50/40 border-slate-100 hover:border-slate-200'
+                      }`}
+                      onClick={() => set(key, !form[key] as boolean)}
+                    >
+                      <div className="flex items-center gap-3.5">
+                        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition-colors ${form[key] ? dot : 'bg-slate-300'}`} />
+                        <div>
+                          <p className="text-sm font-semibold text-slate-700">{label}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={form[key] as boolean}
+                        onCheckedChange={v => set(key, v)}
+                        className="cursor-pointer"
+                        onClick={e => e.stopPropagation()}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        {/* ── FOOTER ── */}
+        <div className="flex-shrink-0 flex items-center justify-between px-10 py-4 border-t border-slate-200/80 bg-white shadow-[0_-1px_0_0_rgba(0,0,0,0.04)]">
+          <div className="flex items-center gap-2.5 text-xs text-slate-400">
+            {uploadingCount > 0 ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-500" />
+                <span className="text-amber-600 font-semibold">Inapakia picha {uploadingCount}, tafadhali subiri...</span>
+              </>
+            ) : (
+              <>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>{isEdit ? 'Mabadiliko yatahifadhiwa Supabase mara moja' : 'Bidhaa itaongezwa kwenye duka mara moja'}</span>
+              </>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="h-10 px-6 text-sm cursor-pointer border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 rounded-xl font-medium"
+            >
+              Ghairi
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={saving || uploadingCount > 0}
+              className="h-10 px-8 text-sm font-semibold bg-[#0D47A1] hover:bg-[#0a3880] cursor-pointer shadow-md disabled:opacity-50 gap-2.5 rounded-xl transition-all hover:shadow-lg hover:-translate-y-px active:translate-y-0"
+            >
+              {saving
+                ? <><Loader2 className="w-4 h-4 animate-spin" />Inahifadhi...</>
+                : isEdit ? 'Hifadhi Mabadiliko' : 'Ongeza Bidhaa'
+              }
+            </Button>
+          </div>
+        </div>
+
+      </DialogContent>
+    </Dialog> 
+  )
+}
+
