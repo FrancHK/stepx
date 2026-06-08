@@ -329,13 +329,8 @@ export default function OrdersClient({ initialOrders, transporters, locations }:
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-bold text-gray-800 text-sm">{order.user_name ?? '—'}</p>
-                  {order.status === 'in_transit' && order.transport_company && (
-                    <span className="text-[10px] bg-teal-50 text-teal-700 border border-teal-100 px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-0.5">
-                      <Truck className="w-2.5 h-2.5" />{order.transport_company}
-                    </span>
-                  )}
                 </div>
-                <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                   <span className="text-xs text-gray-400 font-mono">#{order.id.slice(0,8).toUpperCase()}</span>
                   <span className="text-xs text-gray-400">{order.user_phone ?? ''}</span>
                   <span className="text-xs text-gray-300">·</span>
@@ -343,6 +338,20 @@ export default function OrdersClient({ initialOrders, transporters, locations }:
                   <span className="text-xs text-gray-300">·</span>
                   <span className="text-xs text-gray-400">{formatDate(order.created_at)}</span>
                 </div>
+                {(order.transport_company || order.transit_location) && (
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {order.transport_company && (
+                      <span className="inline-flex items-center gap-1 text-[10px] bg-teal-50 text-teal-700 border border-teal-100 px-2 py-0.5 rounded-full font-semibold">
+                        <Truck className="w-2.5 h-2.5" />{order.transport_company}
+                      </span>
+                    )}
+                    {order.transit_location && (
+                      <span className="inline-flex items-center gap-1 text-[10px] bg-orange-50 text-orange-700 border border-orange-100 px-2 py-0.5 rounded-full font-semibold">
+                        <MapPin className="w-2.5 h-2.5" />{order.transit_location}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Right side */}
