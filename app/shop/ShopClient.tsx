@@ -635,7 +635,7 @@ export default function ShopClient({
                   className="bg-white rounded-2xl shadow-sm border border-white flex flex-col overflow-hidden hover:shadow-md transition-shadow"
                 >
                   {/* Image — portrait ratio */}
-                  <div className="relative overflow-hidden bg-gray-100" style={{ aspectRatio: '3/4' }}>
+                  <div className="relative overflow-hidden bg-gray-100 aspect-square">
                     {product.images?.[0] ? (
                       <img
                         src={product.images[0]}
