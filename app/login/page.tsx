@@ -7,27 +7,46 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Loader2, Eye, EyeOff } from 'lucide-react'
+import { Loader2, Eye, EyeOff, Phone } from 'lucide-react'
 import Image from 'next/image'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPass, setShowPass] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
+  function phoneToEmail(raw: string): string {
+    const digits = raw.replace(/\D/g, '')
+    const local = digits.startsWith('0') ? digits.slice(1) : digits
+    return `255${local}@stepx.app`
+  }
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
+    if (!phone.startsWith('07') || phone.replace(/\D/g, '').length !== 10) {
+      toast.error('Weka namba sahihi inayoanza na 07 (mfano: 0758285354)')
+      return
+    }
     setLoading(true)
     try {
+      const email = phoneToEmail(phone)
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) throw error
-      if (data.user?.email !== 'admin@stepx.com') {
+
+      const { data: profile } = await supabase
+        .from('msafiri_users')
+        .select('role')
+        .eq('id', data.user.id)
+        .single()
+
+      if (profile?.role !== 'admin') {
         await supabase.auth.signOut()
-        throw new Error('Hauna ruhusa ya kuingia hapa.')
+        throw new Error('Hauna ruhusa ya kuingia admin panel.')
       }
+
       toast.success('Umeingia kwa mafanikio!')
       router.push('/admin/dashboard')
       router.refresh()
@@ -55,16 +74,19 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-700 font-medium">Barua Pepe</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="admin@stepx.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                className="h-11 border-gray-200 focus:border-[#0D47A1] focus:ring-[#0D47A1]"
-              />
+              <Label htmlFor="phone" className="text-gray-700 font-medium">Namba ya Simu</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="0758285354"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  required
+                  className="h-11 pl-10 border-gray-200 focus:border-[#0D47A1] focus:ring-[#0D47A1]"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
