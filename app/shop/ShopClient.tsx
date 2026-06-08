@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import {
   ShoppingCart, X, Plus, Minus, Search, ChevronRight,
   CheckCircle2, Package, Phone, MapPin, Truck, ArrowLeft,
-  Building2, ChevronDown,
+  Building2, ChevronDown, SlidersHorizontal, Sparkles, Flame, Tag,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -55,6 +55,10 @@ export default function ShopClient({
   const [step, setStep] = useState<'browse' | 'checkout' | 'success'>('browse')
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [filterBrands, setFilterBrands] = useState<string[]>([])
+  const [filterNew, setFilterNew] = useState(false)
+  const [filterHot, setFilterHot] = useState(false)
   const [form, setForm] = useState({ name: '', phone: '', address: '' })
   const [submitting, setSubmitting] = useState(false)
   const [orderId, setOrderId] = useState('')
@@ -109,14 +113,24 @@ export default function ShopClient({
     return ['all', ...cats]
   }, [products])
 
+  const brands = useMemo(() =>
+    Array.from(new Set(products.map(p => p.brand).filter(Boolean))).sort(),
+    [products]
+  )
+
+  const activeFilterCount = filterBrands.length + (filterNew ? 1 : 0) + (filterHot ? 1 : 0)
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
     return products.filter(p => {
       const matchCat = category === 'all' || p.category === category
       const matchQ = !q || p.name.toLowerCase().includes(q) || p.brand?.toLowerCase().includes(q)
-      return matchCat && matchQ
+      const matchBrand = filterBrands.length === 0 || filterBrands.includes(p.brand ?? '')
+      const matchNew = !filterNew || p.is_new
+      const matchHot = !filterHot || p.is_trending
+      return matchCat && matchQ && matchBrand && matchNew && matchHot
     })
-  }, [products, search, category])
+  }, [products, search, category, filterBrands, filterNew, filterHot])
 
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0)
   const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0)
@@ -508,6 +522,18 @@ export default function ShopClient({
               className="w-full bg-white/15 border border-white/20 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder:text-white/50 focus:outline-none focus:bg-white/25 transition-colors"
             />
           </div>
+          {/* Filter button */}
+          <button
+            onClick={() => setFilterOpen(true)}
+            className="relative flex-shrink-0 w-10 h-10 bg-white/15 hover:bg-white/25 rounded-xl flex items-center justify-center cursor-pointer transition-colors"
+          >
+            <SlidersHorizontal className="w-4 h-4 text-white" />
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF8F00] rounded-full text-[9px] font-black flex items-center justify-center text-white">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
           {/* Cart icon */}
           <button
             onClick={() => setCartOpen(true)}
@@ -540,6 +566,36 @@ export default function ShopClient({
           ))}
         </div>
       </div>
+
+      {/* ── ACTIVE FILTER PILLS ── */}
+      {activeFilterCount > 0 && (
+        <div className="flex gap-2 px-3 pt-2 flex-wrap">
+          {filterNew && (
+            <span className="flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full border border-blue-200">
+              <Sparkles className="w-3 h-3" /> Mpya
+              <button onClick={() => setFilterNew(false)} className="ml-1 cursor-pointer hover:text-blue-900">×</button>
+            </span>
+          )}
+          {filterHot && (
+            <span className="flex items-center gap-1 bg-rose-100 text-rose-700 text-xs font-bold px-3 py-1 rounded-full border border-rose-200">
+              <Flame className="w-3 h-3" /> Inayoisha Sana
+              <button onClick={() => setFilterHot(false)} className="ml-1 cursor-pointer hover:text-rose-900">×</button>
+            </span>
+          )}
+          {filterBrands.map(b => (
+            <span key={b} className="flex items-center gap-1 bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1 rounded-full border border-purple-200">
+              <Tag className="w-3 h-3" /> {b}
+              <button onClick={() => setFilterBrands(prev => prev.filter(x => x !== b))} className="ml-1 cursor-pointer hover:text-purple-900">×</button>
+            </span>
+          ))}
+          <button
+            onClick={() => { setFilterBrands([]); setFilterNew(false); setFilterHot(false) }}
+            className="text-xs text-gray-400 hover:text-gray-600 font-semibold px-2 py-1 cursor-pointer"
+          >
+            Futa zote
+          </button>
+        </div>
+      )}
 
       {/* ── HERO STRIP ── */}
       {!search && category === 'all' && (
@@ -704,6 +760,123 @@ export default function ShopClient({
               </div>
             </div>
           </button>
+        </div>
+      )}
+
+      {/* ── FILTER DRAWER ── */}
+      {filterOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setFilterOpen(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            className="relative bg-white rounded-t-3xl w-full max-w-md shadow-2xl pb-safe"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3 mb-1" />
+            <div className="flex items-center justify-between px-5 pt-2 pb-4">
+              <div>
+                <h2 className="font-black text-gray-800 text-xl">Chuja Bidhaa</h2>
+                {activeFilterCount > 0 && (
+                  <p className="text-xs text-[#0D47A1] font-bold mt-0.5">{activeFilterCount} filter {activeFilterCount === 1 ? 'imechaguliwa' : 'zimechaguliwa'}</p>
+                )}
+              </div>
+              <button onClick={() => setFilterOpen(false)} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer">
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="px-5 pb-8 space-y-5 max-h-[70vh] overflow-y-auto">
+
+              {/* Quick filters */}
+              <div>
+                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Aina ya Bidhaa</p>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => setFilterNew(v => !v)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold cursor-pointer transition-all border-2 ${
+                      filterNew
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-200'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
+                    }`}
+                  >
+                    <Sparkles className="w-4 h-4" /> Mpya
+                  </button>
+                  <button
+                    onClick={() => setFilterHot(v => !v)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold cursor-pointer transition-all border-2 ${
+                      filterHot
+                        ? 'bg-rose-500 text-white border-rose-500 shadow-md shadow-rose-200'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-rose-300'
+                    }`}
+                  >
+                    <Flame className="w-4 h-4" /> Inayoisha Sana 🔥
+                  </button>
+                </div>
+              </div>
+
+              {/* Brand filter */}
+              {brands.length > 0 && (
+                <div>
+                  <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Lika (Brand)</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {brands.map(brand => {
+                      const active = filterBrands.includes(brand)
+                      return (
+                        <button
+                          key={brand}
+                          onClick={() => setFilterBrands(prev =>
+                            active ? prev.filter(b => b !== brand) : [...prev, brand]
+                          )}
+                          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold cursor-pointer transition-all border-2 ${
+                            active
+                              ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-200'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300'
+                          }`}
+                        >
+                          <Tag className="w-3.5 h-3.5" /> {brand}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Category filter */}
+              <div>
+                <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Aina ya Bidhaa</p>
+                <div className="flex gap-2 flex-wrap">
+                  {categories.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setCategory(cat)}
+                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold cursor-pointer transition-all border-2 ${
+                        category === cat
+                          ? 'bg-[#0D47A1] text-white border-[#0D47A1] shadow-md shadow-blue-200'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
+                      }`}
+                    >
+                      {CATEGORY_ICONS[cat] ?? '📦'} {CATEGORY_LABELS[cat] ?? cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => { setFilterBrands([]); setFilterNew(false); setFilterHot(false); setCategory('all') }}
+                  className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-sm font-bold text-gray-600 cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  Futa Filters
+                </button>
+                <button
+                  onClick={() => setFilterOpen(false)}
+                  className="flex-1 py-3 rounded-xl bg-[#0D47A1] text-white text-sm font-bold cursor-pointer hover:bg-[#0a3880] transition-colors shadow-md shadow-blue-200"
+                >
+                  Angalia {filtered.length} Bidhaa
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
