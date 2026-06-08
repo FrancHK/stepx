@@ -67,7 +67,9 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
-            <Image src="/logo.png" alt="StepX" width={120} height={80} className="mb-2" style={{ width: 'auto', height: 'auto', maxWidth: 120 }} priority />
+            <div className="relative mb-2" style={{ width: 120, height: 80 }}>
+              <Image src="/logo.png" alt="StepX" fill style={{ objectFit: 'contain' }} priority />
+            </div>
             <p className="text-gray-500 text-sm">Admin Panel — Ingia akaunti yako</p>
           </div>
 

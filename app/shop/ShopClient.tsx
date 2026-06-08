@@ -508,7 +508,9 @@ export default function ShopClient({
         <div className="px-4 pt-4 pb-2 flex items-center gap-3">
           {/* Logo */}
           <div className="flex items-center flex-shrink-0">
-            <Image src="/logo.png" alt="StepX" width={90} height={40} style={{ width: 'auto', height: 'auto', maxWidth: 90 }} priority />
+            <div className="relative" style={{ width: 90, height: 40 }}>
+              <Image src="/logo.png" alt="StepX" fill style={{ objectFit: 'contain' }} priority />
+            </div>
           </div>
           {/* Search */}
           <div className="flex-1 relative">
