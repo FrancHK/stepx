@@ -479,61 +479,93 @@ export default function ShopClient({
     )
   }
 
+  const CATEGORY_ICONS: Record<string, string> = {
+    all: '🛍️', yebo: '👟', sendo: '👠', mabuti: '🥿', ndara: '🩴', boti_boti: '👞',
+  }
+
   // ── BROWSE ────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-[#0D47A1] text-white sticky top-0 z-30 shadow-lg">
-        <div className="px-4 pt-4 pb-2 flex items-center justify-between gap-3">
+    <div className="min-h-screen bg-[#F0F4FF]">
+
+      {/* ── STICKY HEADER ── */}
+      <div className="bg-gradient-to-r from-[#0D47A1] to-[#1976D2] sticky top-0 z-30">
+        <div className="px-4 pt-4 pb-2 flex items-center gap-3">
+          {/* Logo */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-              <Truck className="w-4 h-4" />
+            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-lg">👟</div>
+            <div className="leading-tight">
+              <p className="font-black text-white text-base tracking-wide">StepX</p>
+              <p className="text-white/60 text-[9px] tracking-widest uppercase">Viatu Bora</p>
             </div>
-            <p className="font-bold text-base">StepX</p>
           </div>
+          {/* Search */}
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
             <input
-              placeholder="Tafuta..."
+              placeholder="Tafuta bidhaa..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full bg-white/15 border border-white/20 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder:text-white/50 focus:outline-none focus:bg-white/25"
+              className="w-full bg-white/15 border border-white/20 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder:text-white/50 focus:outline-none focus:bg-white/25 transition-colors"
             />
           </div>
+          {/* Cart icon */}
           <button
             onClick={() => setCartOpen(true)}
-            className="relative p-2 rounded-xl bg-white/15 hover:bg-white/25 cursor-pointer flex-shrink-0"
+            className="relative flex-shrink-0 w-10 h-10 bg-white/15 hover:bg-white/25 rounded-xl flex items-center justify-center cursor-pointer transition-colors"
           >
-            <ShoppingCart className="w-5 h-5" />
+            <ShoppingCart className="w-5 h-5 text-white" />
             {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#FF8F00] rounded-full text-[10px] font-bold flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#FF8F00] rounded-full text-[10px] font-black flex items-center justify-center text-white shadow-md">
                 {cartCount}
               </span>
             )}
           </button>
         </div>
-        {/* Categories */}
-        <div className="flex gap-1.5 px-4 pb-3 overflow-x-auto scrollbar-hide">
+
+        {/* Category chips */}
+        <div className="flex gap-2 px-4 pb-3 overflow-x-auto scrollbar-hide">
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setCategory(cat)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap cursor-pointer transition-all ${
-                category === cat ? 'bg-white text-[#0D47A1]' : 'bg-white/15 text-white/80 hover:bg-white/25'
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap cursor-pointer transition-all ${
+                category === cat
+                  ? 'bg-white text-[#0D47A1] shadow-md scale-105'
+                  : 'bg-white/15 text-white/80 hover:bg-white/25'
               }`}
             >
+              <span>{CATEGORY_ICONS[cat] ?? '📦'}</span>
               {CATEGORY_LABELS[cat] ?? cat}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Products Grid */}
-      <div className="px-3 py-4 pb-32 max-w-2xl mx-auto">
+      {/* ── HERO STRIP ── */}
+      {!search && category === 'all' && (
+        <div className="mx-3 mt-3 rounded-2xl overflow-hidden bg-gradient-to-r from-[#FF8F00] to-[#F57C00] px-5 py-4 flex items-center justify-between shadow-sm">
+          <div>
+            <p className="text-white font-black text-lg leading-tight">Bei ya Jumla 🔥</p>
+            <p className="text-orange-100 text-xs mt-0.5">Viatu bora, bei ya mfuko mzima</p>
+          </div>
+          <div className="text-4xl">👟</div>
+        </div>
+      )}
+
+      {/* ── PRODUCTS GRID ── */}
+      <div className="px-3 py-3 pb-36 max-w-2xl mx-auto">
+        {search && (
+          <p className="text-xs text-gray-400 mb-2 px-1">
+            {filtered.length} bidhaa kwa &quot;{search}&quot;
+          </p>
+        )}
         {filtered.length === 0 ? (
-          <div className="text-center py-20">
-            <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-400">Hakuna bidhaa zinazolingana</p>
+          <div className="text-center py-24">
+            <div className="text-5xl mb-3">🔍</div>
+            <p className="text-gray-500 font-semibold">Hakuna bidhaa zinazolingana</p>
+            <button onClick={() => { setSearch(''); setCategory('all') }} className="mt-3 text-sm text-[#0D47A1] font-bold cursor-pointer hover:underline">
+              Angalia bidhaa zote
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
@@ -544,67 +576,98 @@ export default function ShopClient({
               const inCart = cartItem?.quantity ?? 0
 
               return (
-                <div key={product.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-                  {/* Image */}
-                  <div className="aspect-square bg-gray-100 relative rounded-t-2xl overflow-hidden">
+                <div
+                  key={product.id}
+                  className="bg-white rounded-2xl shadow-sm border border-white flex flex-col overflow-hidden hover:shadow-md transition-shadow"
+                >
+                  {/* Image — portrait ratio */}
+                  <div className="relative overflow-hidden bg-gray-100" style={{ aspectRatio: '3/4' }}>
                     {product.images?.[0] ? (
                       <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-50">
-                        <Package className="w-10 h-10 text-gray-300" />
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-gray-50 to-gray-100">
+                        <span className="text-4xl">👟</span>
+                        <p className="text-[10px] text-gray-300 font-medium">Hakuna Picha</p>
                       </div>
                     )}
-                    {product.is_new && (
-                      <span className="absolute top-2 left-2 bg-[#FF8F00] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">NEW</span>
+                    {/* Badges */}
+                    <div className="absolute top-2 left-2 flex flex-col gap-1">
+                      {product.is_new && (
+                        <span className="bg-[#FF8F00] text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">NEW</span>
+                      )}
+                      {product.is_trending && (
+                        <span className="bg-rose-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">🔥 HOT</span>
+                      )}
+                    </div>
+                    {!hasStock && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <span className="bg-black/70 text-white text-xs font-bold px-3 py-1 rounded-full">Imekwisha</span>
+                      </div>
+                    )}
+                    {inCart > 0 && (
+                      <div className="absolute top-2 right-2 w-6 h-6 bg-[#0D47A1] rounded-full flex items-center justify-center shadow-md">
+                        <span className="text-white text-[10px] font-black">{inCart}</span>
+                      </div>
                     )}
                   </div>
 
                   {/* Info */}
-                  <div className="p-3 flex flex-col gap-1">
-                    {product.brand && <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">{product.brand}</p>}
-                    <p className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2">{product.name}</p>
+                  <div className="p-3 flex flex-col gap-1.5 flex-1">
+                    {product.brand && (
+                      <p className="text-[9px] text-[#0D47A1] uppercase tracking-widest font-bold">{product.brand}</p>
+                    )}
+                    <p className="font-bold text-gray-800 text-sm leading-snug line-clamp-2">{product.name}</p>
                     {range && (
-                      <p className="text-[11px] text-gray-500">
-                        Saizi: <span className="font-semibold text-gray-700">{range}</span>
+                      <p className="text-[10px] text-gray-400">
+                        Saizi <span className="font-bold text-gray-600">{range}</span>
                       </p>
                     )}
 
-                    {/* Bei ya bidhaa */}
-                    <div className="bg-orange-50 rounded-lg px-2 py-1 my-0.5">
-                      <p className="font-extrabold text-orange-600 text-sm leading-none">
-                        {formatCurrency(Number(product.wholesale_price))}
-                      </p>
+                    {/* Price */}
+                    <div className="flex items-center gap-1.5 mt-auto pt-1">
+                      <div className="flex-1 bg-gradient-to-r from-orange-50 to-orange-50/50 rounded-lg px-2 py-1.5 border border-orange-100">
+                        <p className="text-[8px] text-orange-400 font-bold uppercase tracking-wide leading-none mb-0.5">Bei ya Mfuko</p>
+                        <p className="font-black text-orange-600 text-sm leading-none">
+                          {formatCurrency(Number(product.wholesale_price))}
+                        </p>
+                      </div>
                     </div>
 
-
-                    {/* Add / quantity buttons */}
+                    {/* Add / quantity */}
                     {inCart === 0 ? (
                       <button
                         disabled={!hasStock}
                         onClick={() => hasStock && addToCart(product)}
-                        className={`w-full py-2.5 rounded-xl text-sm font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 ${
+                        className={`w-full py-2.5 rounded-xl text-xs font-black cursor-pointer transition-all flex items-center justify-center gap-1.5 mt-0.5 ${
                           hasStock
-                            ? 'bg-[#0D47A1] text-white hover:bg-[#0a3880] active:scale-95'
+                            ? 'bg-[#0D47A1] text-white hover:bg-[#0a3880] active:scale-95 shadow-sm shadow-blue-200'
                             : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         }`}
                       >
-                        <ShoppingCart className="w-4 h-4" />
-                        {hasStock ? 'Ongeza' : 'Haipatikani'}
+                        {hasStock ? <><ShoppingCart className="w-3.5 h-3.5" /> Ongeza Mfukoni</> : 'Haipatikani'}
                       </button>
                     ) : (
-                      <div className="rounded-xl bg-blue-50 border border-blue-100 overflow-hidden">
-                        <div className="flex items-center justify-between px-2 pt-2">
-                          <button onClick={() => changeQty(product.id, cartItem!.size, -1)} className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center cursor-pointer border border-gray-100">
-                            <Minus className="w-3.5 h-3.5 text-gray-600" />
+                      <div className="mt-0.5 rounded-xl bg-blue-50 border border-blue-100 overflow-hidden">
+                        <div className="flex items-center justify-between px-2 py-1.5">
+                          <button
+                            onClick={() => changeQty(product.id, cartItem!.size, -1)}
+                            className="w-7 h-7 rounded-lg bg-white shadow-sm border border-gray-100 flex items-center justify-center cursor-pointer"
+                          >
+                            <Minus className="w-3 h-3 text-gray-600" />
                           </button>
-                          <span className="text-base font-extrabold text-[#0D47A1]">{inCart}x</span>
-                          <button onClick={() => addToCart(product)} className="w-8 h-8 rounded-lg bg-[#0D47A1] flex items-center justify-center cursor-pointer">
-                            <Plus className="w-3.5 h-3.5 text-white" />
+                          <div className="text-center">
+                            <span className="text-sm font-black text-[#0D47A1]">{inCart}x</span>
+                            <p className="text-[10px] text-gray-500 font-semibold leading-none mt-0.5">
+                              {formatCurrency(cartItem!.price * inCart)}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => addToCart(product)}
+                            className="w-7 h-7 rounded-lg bg-[#0D47A1] flex items-center justify-center cursor-pointer shadow-sm"
+                          >
+                            <Plus className="w-3 h-3 text-white" />
                           </button>
                         </div>
-                        <p className="text-center text-sm font-bold text-gray-700 py-1.5">
-                          {formatCurrency(cartItem!.price * inCart)}
-                        </p>
                       </div>
                     )}
                   </div>
@@ -615,25 +678,28 @@ export default function ShopClient({
         )}
       </div>
 
-      {/* Cart FAB */}
+      {/* ── CART FAB ── */}
       {cartCount > 0 && !cartOpen && (
-        <div className="fixed bottom-5 left-3 right-3 max-w-2xl mx-auto z-20">
+        <div className="fixed bottom-5 left-3 right-3 max-w-lg mx-auto z-20">
           <button
             onClick={() => setCartOpen(true)}
-            className="w-full bg-[#0D47A1] text-white rounded-2xl px-5 py-4 flex items-center justify-between shadow-2xl cursor-pointer active:scale-[0.98] transition-transform"
+            className="w-full bg-gradient-to-r from-[#0D47A1] to-[#1565C0] text-white rounded-2xl px-5 py-4 flex items-center justify-between shadow-2xl shadow-blue-900/30 cursor-pointer active:scale-[0.98] transition-all"
           >
             <div className="flex items-center gap-3">
-              <div className="relative">
-                <ShoppingCart className="w-5 h-5" />
-                <span className="absolute -top-2 -right-2 w-4 h-4 bg-[#FF8F00] rounded-full text-[9px] font-bold flex items-center justify-center">
+              <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center relative flex-shrink-0">
+                <ShoppingCart className="w-4 h-4" />
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#FF8F00] rounded-full text-[9px] font-black flex items-center justify-center">
                   {cartCount}
                 </span>
               </div>
-              <span className="font-semibold text-sm">{cartCount} bidhaa kwenye mfuko</span>
+              <div>
+                <p className="font-bold text-sm">{cartCount} bidhaa kwenye mfuko</p>
+                <p className="text-blue-200 text-[10px]">Bonyeza kukamilisha</p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-base">{formatCurrency(subtotal)}</span>
-              <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="font-black text-base">{formatCurrency(subtotal)}</span>
+              <div className="w-7 h-7 bg-white/20 rounded-xl flex items-center justify-center">
                 <ChevronRight className="w-4 h-4" />
               </div>
             </div>
@@ -641,67 +707,83 @@ export default function ShopClient({
         </div>
       )}
 
-
-      {/* Cart Drawer */}
+      {/* ── CART DRAWER ── */}
       {cartOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={() => setCartOpen(false)}>
-          <div className="bg-white rounded-t-3xl w-full max-w-md max-h-[85vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
+        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setCartOpen(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            className="relative bg-white rounded-t-3xl w-full max-w-md max-h-[88vh] flex flex-col shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Handle */}
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3 mb-1 flex-shrink-0" />
+
+            <div className="flex items-center justify-between px-5 pt-2 pb-4 flex-shrink-0">
               <div>
-                <h2 className="font-bold text-gray-800 text-lg">Mfuko Wako</h2>
-                <p className="text-xs text-gray-400">{cartCount} bidhaa</p>
+                <h2 className="font-black text-gray-800 text-xl">🛍️ Mfuko Wako</h2>
+                <p className="text-xs text-gray-400 mt-0.5">{cartCount} bidhaa · {formatCurrency(subtotal)}</p>
               </div>
-              <button onClick={() => setCartOpen(false)} className="cursor-pointer w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+              <button
+                onClick={() => setCartOpen(false)}
+                className="cursor-pointer w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+              >
                 <X className="w-4 h-4 text-gray-500" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+            <div className="flex-1 overflow-y-auto px-4 space-y-2.5 pb-2">
               {cart.length === 0 ? (
-                <div className="text-center py-10">
-                  <ShoppingCart className="w-10 h-10 text-gray-200 mx-auto mb-2" />
-                  <p className="text-gray-400 text-sm">Mfuko uko tupu</p>
+                <div className="text-center py-16">
+                  <div className="text-5xl mb-3">🛒</div>
+                  <p className="text-gray-400 font-semibold">Mfuko uko tupu</p>
+                  <button onClick={() => setCartOpen(false)} className="mt-2 text-sm text-[#0D47A1] font-bold cursor-pointer">
+                    Endelea kununua →
+                  </button>
                 </div>
-              ) : (
-                cart.map((item, i) => (
-                  <div key={i} className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3">
-                    <div className="w-14 h-14 bg-gray-200 rounded-xl overflow-hidden flex-shrink-0">
-                      {item.image
-                        ? <img src={item.image} alt={item.product_name} className="w-full h-full object-cover" />
-                        : <div className="w-full h-full flex items-center justify-center"><Package className="w-5 h-5 text-gray-400" /></div>
-                      }
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-800 text-sm truncate">{item.product_name}</p>
-                      <p className="text-xs text-gray-500">Size {item.size}</p>
-                      <p className="text-[#0D47A1] font-bold text-sm mt-0.5">{formatCurrency(item.price)}</p>
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <button onClick={() => changeQty(item.product_id, item.size, -1)} className="w-7 h-7 rounded-lg bg-gray-200 flex items-center justify-center cursor-pointer">
-                        <Minus className="w-3 h-3" />
-                      </button>
-                      <span className="w-6 text-center text-sm font-bold">{item.quantity}</span>
-                      <button onClick={() => changeQty(item.product_id, item.size, 1)} className="w-7 h-7 rounded-lg bg-[#0D47A1] flex items-center justify-center cursor-pointer">
-                        <Plus className="w-3 h-3 text-white" />
-                      </button>
-                    </div>
+              ) : cart.map((item, i) => (
+                <div key={i} className="flex items-center gap-3 bg-gray-50 rounded-2xl p-3 border border-gray-100">
+                  <div className="w-16 h-16 bg-gray-200 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
+                    {item.image
+                      ? <img src={item.image} alt={item.product_name} className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center text-2xl">👟</div>
+                    }
                   </div>
-                ))
-              )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-800 text-sm truncate">{item.product_name}</p>
+                    <p className="text-xs text-gray-400">Size {item.size}</p>
+                    <p className="text-[#0D47A1] font-black text-sm mt-0.5">{formatCurrency(item.price)}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => changeQty(item.product_id, item.size, -1)}
+                      className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center cursor-pointer shadow-sm"
+                    >
+                      <Minus className="w-3 h-3 text-gray-500" />
+                    </button>
+                    <span className="w-5 text-center text-sm font-black text-gray-800">{item.quantity}</span>
+                    <button
+                      onClick={() => changeQty(item.product_id, item.size, 1)}
+                      className="w-7 h-7 rounded-lg bg-[#0D47A1] flex items-center justify-center cursor-pointer shadow-sm"
+                    >
+                      <Plus className="w-3 h-3 text-white" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
 
             {cart.length > 0 && (
-              <div className="px-4 pb-6 pt-3 border-t border-gray-100 flex-shrink-0 space-y-3">
+              <div className="px-4 pb-8 pt-4 border-t border-gray-100 flex-shrink-0 space-y-3 bg-white">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-gray-700">Jumla ya Bidhaa</span>
-                  <span className="font-bold text-2xl text-[#0D47A1]">{formatCurrency(subtotal)}</span>
+                  <span className="text-gray-500 font-medium">Jumla ya Bidhaa</span>
+                  <span className="font-black text-2xl text-[#0D47A1]">{formatCurrency(subtotal)}</span>
                 </div>
-                <Button
+                <button
                   onClick={() => { setCartOpen(false); setStep('checkout') }}
-                  className="w-full bg-[#0D47A1] hover:bg-[#0a3880] cursor-pointer h-14 text-base font-bold rounded-2xl"
+                  className="w-full bg-gradient-to-r from-[#0D47A1] to-[#1565C0] hover:from-[#0a3880] hover:to-[#0D47A1] cursor-pointer h-14 text-base font-black rounded-2xl text-white flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98]"
                 >
-                  Endelea Kununua <ChevronRight className="w-5 h-5 ml-1" />
-                </Button>
+                  Endelea Kununua <ChevronRight className="w-5 h-5" />
+                </button>
               </div>
             )}
           </div>
