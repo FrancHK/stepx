@@ -12,7 +12,13 @@ function adminClient() {
 export async function updateOrderStatus(
   orderId: string,
   status: string,
-  extra?: { vehicle_number?: string; conductor_phone?: string }
+  extra?: {
+    vehicle_number?: string
+    conductor_phone?: string
+    transport_company?: string
+    transport_phone?: string
+    transit_location?: string
+  }
 ) {
   const supabase = adminClient()
   const { error } = await supabase

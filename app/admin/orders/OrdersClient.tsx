@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
 import { updateOrderStatus } from './actions'
-import { Search, Download, Eye, Truck, Phone, Hash, Printer } from 'lucide-react'
+import { Search, Download, Eye, Truck, Phone, Hash, Printer, MapPin, Building2, ChevronDown } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -12,9 +12,13 @@ import {
   formatCurrency, formatDate, STATUS_LABELS, STATUS_COLORS,
   PAYMENT_LABELS, ORDER_STATUSES
 } from '@/lib/utils'
-import type { Order, OrderStatus } from '@/lib/types'
+import type { Order, OrderStatus, Transporter, Location } from '@/lib/types'
 
-interface Props { initialOrders: Order[] }
+interface Props {
+  initialOrders: Order[]
+  transporters: Transporter[]
+  locations: Location[]
+}
 
 const TABS: { label: string; value: string }[] = [
   { label: 'All', value: 'all' },
@@ -26,7 +30,7 @@ const TABS: { label: string; value: string }[] = [
   { label: 'Cancelled', value: 'cancelled' },
 ]
 
-export default function OrdersClient({ initialOrders }: Props) {
+export default function OrdersClient({ initialOrders, transporters, locations }: Props) {
   const [orders, setOrders] = useState<Order[]>(initialOrders)
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState('all')
@@ -34,7 +38,29 @@ export default function OrdersClient({ initialOrders }: Props) {
   const [newStatus, setNewStatus] = useState<OrderStatus>('pending')
   const [vehicleNumber, setVehicleNumber] = useState('')
   const [conductorPhone, setConductorPhone] = useState('')
+  const [selectedTransporterId, setSelectedTransporterId] = useState('__manual__')
+  const [transportCompany, setTransportCompany] = useState('')
+  const [transportPhone, setTransportPhone] = useState('')
+  const [transitLocation, setTransitLocation] = useState('')
+  const [locationDropdownOpen, setLocationDropdownOpen] = useState(false)
+  const locationRef = useRef<HTMLDivElement>(null)
   const [updating, setUpdating] = useState(false)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
+        setLocationDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const filteredLocations = useMemo(() =>
+    locations.filter(l => l.name.toLowerCase().includes(transitLocation.toLowerCase()) ||
+      l.address.toLowerCase().includes(transitLocation.toLowerCase())),
+    [locations, transitLocation]
+  )
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
@@ -58,9 +84,24 @@ export default function OrdersClient({ initialOrders }: Props) {
     setNewStatus(order.status)
     setVehicleNumber(order.vehicle_number ?? '')
     setConductorPhone(order.conductor_phone ?? '')
+    setTransportCompany(order.transport_company ?? '')
+    setTransportPhone(order.transport_phone ?? '')
+    setTransitLocation(order.transit_location ?? '')
+    setSelectedTransporterId('__manual__')
   }
 
   const showTransitFields = newStatus === 'in_transit'
+
+  function handleTransporterSelect(id: string) {
+    setSelectedTransporterId(id)
+    if (id === '__manual__') {
+      setTransportCompany('')
+      setTransportPhone('')
+    } else {
+      const t = transporters.find(t => t.id === id)
+      if (t) { setTransportCompany(t.name); setTransportPhone(t.phone) }
+    }
+  }
 
   async function updateStatus() {
     if (!selectedOrder) return
@@ -70,15 +111,15 @@ export default function OrdersClient({ initialOrders }: Props) {
     }
     setUpdating(true)
     try {
-      const extra = showTransitFields
-        ? { vehicle_number: vehicleNumber.trim(), conductor_phone: conductorPhone.trim() }
-        : undefined
+      const extra = showTransitFields ? {
+        vehicle_number: vehicleNumber.trim(),
+        conductor_phone: conductorPhone.trim(),
+        transport_company: transportCompany.trim(),
+        transport_phone: transportPhone.trim(),
+        transit_location: transitLocation.trim(),
+      } : undefined
       await updateOrderStatus(selectedOrder.id, newStatus, extra)
-      const updatedOrder = {
-        ...selectedOrder,
-        status: newStatus,
-        ...(extra ?? {}),
-      }
+      const updatedOrder = { ...selectedOrder, status: newStatus, ...(extra ?? {}) }
       setOrders(prev => prev.map(o => o.id === selectedOrder.id ? updatedOrder : o))
       setSelectedOrder(updatedOrder)
       toast.success('Imesasishwa!')
@@ -397,7 +438,13 @@ export default function OrdersClient({ initialOrders }: Props) {
                       </div>
                       <span className="font-bold text-sm uppercase tracking-widest text-blue-100">Taarifa za Safari</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      {selectedOrder.transport_company && (
+                        <div className="bg-white/10 rounded-xl p-3 col-span-2">
+                          <p className="text-blue-200 text-[10px] uppercase tracking-wide mb-1 flex items-center gap-1"><Building2 className="w-3 h-3" />Kampuni</p>
+                          <p className="font-bold">{selectedOrder.transport_company} {selectedOrder.transport_phone ? `· ${selectedOrder.transport_phone}` : ''}</p>
+                        </div>
+                      )}
                       <div className="bg-white/10 rounded-xl p-3">
                         <p className="text-blue-200 text-[10px] uppercase tracking-wide mb-1 flex items-center gap-1"><Hash className="w-3 h-3" />Namba ya Gari</p>
                         <p className="font-bold">{selectedOrder.vehicle_number ?? '—'}</p>
@@ -406,6 +453,12 @@ export default function OrdersClient({ initialOrders }: Props) {
                         <p className="text-blue-200 text-[10px] uppercase tracking-wide mb-1 flex items-center gap-1"><Phone className="w-3 h-3" />Kondakta</p>
                         <p className="font-bold">{selectedOrder.conductor_phone ?? '—'}</p>
                       </div>
+                      {selectedOrder.transit_location && (
+                        <div className="bg-white/10 rounded-xl p-3 col-span-2">
+                          <p className="text-blue-200 text-[10px] uppercase tracking-wide mb-1 flex items-center gap-1"><MapPin className="w-3 h-3" />Location</p>
+                          <p className="font-bold">{selectedOrder.transit_location}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -428,7 +481,7 @@ export default function OrdersClient({ initialOrders }: Props) {
 
                 {/* Transit fields */}
                 {showTransitFields && (
-                  <div className="rounded-2xl border-2 border-blue-200 bg-gradient-to-b from-blue-50 to-white p-4 space-y-3">
+                  <div className="rounded-2xl border-2 border-blue-200 bg-gradient-to-b from-blue-50/60 to-white p-4 space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-lg bg-[#0D47A1] flex items-center justify-center">
                         <Truck className="w-4 h-4 text-white" />
@@ -436,23 +489,110 @@ export default function OrdersClient({ initialOrders }: Props) {
                       <span className="font-bold text-[#0D47A1] text-sm">Taarifa za Safari</span>
                       <span className="ml-auto text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-semibold">LAZIMA *</span>
                     </div>
-                    <div className="relative">
-                      <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                      <Input
-                        placeholder="Namba ya gari (mfano: T 123 ABC)"
-                        value={vehicleNumber}
-                        onChange={e => setVehicleNumber(e.target.value)}
-                        className="pl-9 bg-white border-blue-200 text-sm h-10"
-                      />
+
+                    {/* Transporter selector */}
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1">
+                        <Building2 className="w-3 h-3" /> Kampuni ya Usafiri
+                      </p>
+                      {transporters.length > 0 && (
+                        <div className="relative">
+                          <select
+                            value={selectedTransporterId}
+                            onChange={e => handleTransporterSelect(e.target.value)}
+                            className="w-full h-10 rounded-lg border border-blue-200 bg-white px-3 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] appearance-none cursor-pointer"
+                          >
+                            <option value="__manual__">— Andika mkononi —</option>
+                            {transporters.map(t => (
+                              <option key={t.id} value={t.id}>{t.name} {t.phone ? `· ${t.phone}` : ''}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        </div>
+                      )}
+                      {(selectedTransporterId === '__manual__') && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="relative">
+                            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                            <Input
+                              placeholder="Jina la kampuni"
+                              value={transportCompany}
+                              onChange={e => setTransportCompany(e.target.value)}
+                              className="pl-9 bg-white border-blue-200 text-sm h-10"
+                            />
+                          </div>
+                          <div className="relative">
+                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                            <Input
+                              placeholder="Namba ya simu"
+                              value={transportPhone}
+                              onChange={e => setTransportPhone(e.target.value)}
+                              className="pl-9 bg-white border-blue-200 text-sm h-10"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                      <Input
-                        placeholder="Namba ya kondakta (mfano: 0712345678)"
-                        value={conductorPhone}
-                        onChange={e => setConductorPhone(e.target.value)}
-                        className="pl-9 bg-white border-blue-200 text-sm h-10"
-                      />
+
+                    {/* Vehicle + Conductor */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1">
+                          <Hash className="w-3 h-3" /> Namba ya Gari
+                        </p>
+                        <Input
+                          placeholder="T 123 ABC"
+                          value={vehicleNumber}
+                          onChange={e => setVehicleNumber(e.target.value)}
+                          className="bg-white border-blue-200 text-sm h-10"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1">
+                          <Phone className="w-3 h-3" /> Kondakta
+                        </p>
+                        <Input
+                          placeholder="0712345678"
+                          value={conductorPhone}
+                          onChange={e => setConductorPhone(e.target.value)}
+                          className="bg-white border-blue-200 text-sm h-10"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Location with autocomplete */}
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1">
+                        <MapPin className="w-3 h-3" /> Location ya Delivery
+                      </p>
+                      <div ref={locationRef} className="relative">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 z-10" />
+                        <Input
+                          placeholder="Andika au chagua location..."
+                          value={transitLocation}
+                          onChange={e => { setTransitLocation(e.target.value); setLocationDropdownOpen(true) }}
+                          onFocus={() => setLocationDropdownOpen(true)}
+                          className="pl-9 bg-white border-blue-200 text-sm h-10"
+                        />
+                        {locationDropdownOpen && filteredLocations.length > 0 && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-blue-100 shadow-xl z-50 overflow-hidden max-h-44 overflow-y-auto">
+                            {filteredLocations.map(loc => (
+                              <button
+                                key={loc.id}
+                                type="button"
+                                onMouseDown={() => { setTransitLocation(loc.name); setLocationDropdownOpen(false) }}
+                                className="w-full text-left px-4 py-2.5 hover:bg-blue-50 transition-colors flex items-center gap-2.5 group"
+                              >
+                                <MapPin className="w-3.5 h-3.5 text-[#0D47A1] flex-shrink-0" />
+                                <div>
+                                  <p className="text-sm font-semibold text-gray-800 group-hover:text-[#0D47A1]">{loc.name}</p>
+                                  {loc.address && <p className="text-xs text-gray-400">{loc.address}</p>}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
