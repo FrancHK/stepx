@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import {
   LayoutDashboard, ShoppingBag, Package, Users, LogOut, X,
-  ShoppingBag as StoreIcon, ChevronDown, Tag, Truck, MoreHorizontal, MapPin,
+  ShoppingBag as StoreIcon, ChevronDown, Tag, Truck, MoreHorizontal, MapPin, ContactRound,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase'
@@ -28,6 +28,7 @@ const moreNav = [
   { href: '/admin/brands',       label: 'Brands',       icon: Tag },
   { href: '/admin/transporters', label: 'Transporters',  icon: Truck },
   { href: '/admin/locations',    label: 'Locations',     icon: MapPin },
+  { href: '/admin/wateja',       label: 'Wateja',        icon: ContactRound },
 ]
 
 export default function Sidebar({ pendingCount, onClose }: SidebarProps) {

@@ -235,196 +235,256 @@ export default function OrdersClient({ initialOrders, transporters, locations }:
   const totalItems = (items: Order['items']) =>
     Array.isArray(items) ? items.reduce((s, i) => s + (i.quantity ?? 0), 0) : 0
 
+  const statusMeta: Record<string, { dot: string; tab: string }> = {
+    all:        { dot: 'bg-gray-400',   tab: 'bg-gray-100 text-gray-600' },
+    pending:    { dot: 'bg-orange-400', tab: 'bg-orange-100 text-orange-700' },
+    confirmed:  { dot: 'bg-blue-400',   tab: 'bg-blue-100 text-blue-700' },
+    processing: { dot: 'bg-purple-400', tab: 'bg-purple-100 text-purple-700' },
+    in_transit: { dot: 'bg-teal-400',   tab: 'bg-teal-100 text-teal-700' },
+    delivered:  { dot: 'bg-green-400',  tab: 'bg-green-100 text-green-700' },
+    cancelled:  { dot: 'bg-red-400',    tab: 'bg-red-100 text-red-700' },
+  }
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-8">
+
+      {/* ── HEADER ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Orders</h1>
-          <p className="text-gray-500 text-sm mt-1">{orders.length} total orders</p>
+          <p className="text-gray-400 text-sm mt-0.5">{filtered.length} kati ya {orders.length} orders</p>
         </div>
-        <Button onClick={exportCSV} variant="outline" className="gap-2 cursor-pointer">
-          <Download className="w-4 h-4" /> Export CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={exportCSV} variant="outline" className="gap-2 cursor-pointer h-9 text-sm border-gray-200">
+            <Download className="w-4 h-4" /> Export CSV
+          </Button>
+        </div>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <Input
-          placeholder="Search by name, phone, or order ID..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-9 bg-white border-gray-200"
-        />
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 overflow-x-auto pb-1">
-        {TABS.map(tab => (
+      {/* ── QUICK STATS ── */}
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        {(['pending','confirmed','processing','in_transit','delivered','cancelled'] as const).map(s => (
           <button
-            key={tab.value}
-            onClick={() => setActiveTab(tab.value)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 cursor-pointer ${
-              activeTab === tab.value
-                ? 'bg-[#0D47A1] text-white shadow-sm'
-                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+            key={s}
+            onClick={() => setActiveTab(s)}
+            className={`rounded-xl px-3 py-2.5 text-center cursor-pointer transition-all border ${
+              activeTab === s
+                ? 'border-[#0D47A1] bg-[#0D47A1] text-white shadow-md'
+                : 'border-gray-100 bg-white hover:border-gray-300 text-gray-700'
             }`}
           >
-            {tab.label}
-            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-              activeTab === tab.value ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
-            }`}>
-              {countByStatus(tab.value)}
-            </span>
+            <p className={`text-xl font-extrabold ${activeTab === s ? 'text-white' : 'text-gray-800'}`}>
+              {countByStatus(s)}
+            </p>
+            <p className={`text-[9px] font-bold uppercase tracking-wide mt-0.5 ${activeTab === s ? 'text-blue-100' : 'text-gray-400'}`}>
+              {STATUS_LABELS[s]}
+            </p>
           </button>
         ))}
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 text-left">
-                {['Order ID', 'Customer', 'Phone', 'Items', 'Total', 'Payment', 'Status', 'Date', ''].map(h => (
-                  <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filtered.map(order => (
-                <tr key={order.id} className="hover:bg-gray-50 transition-colors duration-150 cursor-pointer" onClick={() => openOrder(order)}>
-                  <td className="px-4 py-3 text-sm font-mono text-gray-600">{order.id.slice(0, 8).toUpperCase()}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-800 max-w-[120px]">
-                    <span className="truncate block">{order.user_name ?? '—'}</span>
-                    {order.status === 'in_transit' && order.vehicle_number && (
-                      <span className="inline-flex items-center gap-1 text-[10px] text-blue-600 font-medium mt-0.5">
-                        <Truck className="w-3 h-3" />{order.vehicle_number}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{order.user_phone ?? '—'}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{totalItems(order.items)}</td>
-                  <td className="px-4 py-3 text-sm font-semibold text-gray-800">{formatCurrency(order.total ?? 0)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    {PAYMENT_LABELS[order.payment_method as keyof typeof PAYMENT_LABELS] ?? order.payment_method ?? '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_COLORS[order.status]}`}>
-                      {STATUS_LABELS[order.status] ?? order.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{formatDate(order.created_at)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={e => { e.stopPropagation(); openOrder(order) }}
-                        className="text-[#0D47A1] hover:text-[#0a3880] font-medium text-sm flex items-center gap-1 cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5" /> View
-                      </button>
-                      <button
-                        onClick={e => { e.stopPropagation(); printReceipt(order) }}
-                        className="text-gray-400 hover:text-emerald-600 flex items-center gap-1 cursor-pointer"
-                        title="Chapisha Risiti"
-                      >
-                        <Printer className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center text-gray-400">
-                    Hakuna orders zinazolingana.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      {/* ── SEARCH + ALL TAB ── */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            placeholder="Tafuta jina, simu, au order ID..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9 bg-white border-gray-200 h-10"
+          />
         </div>
+        <button
+          onClick={() => setActiveTab('all')}
+          className={`px-4 h-10 rounded-lg text-sm font-semibold cursor-pointer transition-all border ${
+            activeTab === 'all'
+              ? 'bg-[#0D47A1] text-white border-[#0D47A1]'
+              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+          }`}
+        >
+          Zote ({orders.length})
+        </button>
+      </div>
+
+      {/* ── ORDERS CARDS LIST ── */}
+      <div className="space-y-2.5">
+        {filtered.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-gray-100 py-20 text-center">
+            <Truck className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+            <p className="text-gray-400 font-medium">Hakuna orders zinazolingana</p>
+          </div>
+        ) : filtered.map(order => (
+          <div
+            key={order.id}
+            onClick={() => openOrder(order)}
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#0D47A1]/20 transition-all duration-200 cursor-pointer overflow-hidden"
+          >
+            <div className="flex items-center gap-4 px-5 py-4">
+              {/* Avatar */}
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#0D47A1] to-[#1976D2] flex items-center justify-center flex-shrink-0 shadow-sm">
+                <span className="text-white font-bold text-sm">{(order.user_name ?? '??').slice(0,2).toUpperCase()}</span>
+              </div>
+
+              {/* Main info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-bold text-gray-800 text-sm">{order.user_name ?? '—'}</p>
+                  {order.status === 'in_transit' && order.transport_company && (
+                    <span className="text-[10px] bg-teal-50 text-teal-700 border border-teal-100 px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-0.5">
+                      <Truck className="w-2.5 h-2.5" />{order.transport_company}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                  <span className="text-xs text-gray-400 font-mono">#{order.id.slice(0,8).toUpperCase()}</span>
+                  <span className="text-xs text-gray-400">{order.user_phone ?? ''}</span>
+                  <span className="text-xs text-gray-300">·</span>
+                  <span className="text-xs text-gray-400">{totalItems(order.items)} bidhaa</span>
+                  <span className="text-xs text-gray-300">·</span>
+                  <span className="text-xs text-gray-400">{formatDate(order.created_at)}</span>
+                </div>
+              </div>
+
+              {/* Right side */}
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="text-right hidden sm:block">
+                  <p className="font-extrabold text-gray-800 text-base">{formatCurrency(order.total ?? 0)}</p>
+                </div>
+                <span className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${STATUS_COLORS[order.status]}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${statusMeta[order.status]?.dot ?? 'bg-gray-400'}`} />
+                  {STATUS_LABELS[order.status] ?? order.status}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={e => { e.stopPropagation(); openOrder(order) }}
+                    className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center text-[#0D47A1] cursor-pointer transition-colors"
+                    title="Angalia Order"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={e => { e.stopPropagation(); printReceipt(order) }}
+                    className="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center text-emerald-600 cursor-pointer transition-colors"
+                    title="Chapisha Risiti"
+                  >
+                    <Printer className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+            {/* Mobile total + status bar */}
+            <div className="sm:hidden flex items-center justify-between px-5 pb-3 -mt-1">
+              <p className="font-extrabold text-[#0D47A1]">{formatCurrency(order.total ?? 0)}</p>
+              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${STATUS_COLORS[order.status]}`}>
+                {STATUS_LABELS[order.status] ?? order.status}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Order Detail Modal */}
       <Dialog open={!!selectedOrder} onOpenChange={open => !open && setSelectedOrder(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <div className="flex items-center justify-between">
-              <DialogTitle className="text-[#0D47A1]">
-                Order #{selectedOrder?.id.slice(0, 8).toUpperCase()}
-              </DialogTitle>
-              {selectedOrder && (
-                <button
-                  onClick={() => printReceipt(selectedOrder)}
-                  className="flex items-center gap-1.5 text-sm font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg cursor-pointer transition-colors"
-                >
-                  <Printer className="w-4 h-4" /> Chapisha Risiti
-                </button>
-              )}
-            </div>
-          </DialogHeader>
-          {selectedOrder && (
-            <div className="space-y-5 mt-2">
-              {/* Customer Info */}
-              <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">Customer</h3>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-gray-500">Name:</span> <span className="font-medium">{selectedOrder.user_name ?? '—'}</span></div>
-                  <div><span className="text-gray-500">Phone:</span> <span className="font-medium">{selectedOrder.user_phone ?? '—'}</span></div>
-                  <div><span className="text-gray-500">Email:</span> <span className="font-medium">{selectedOrder.user_email ?? '—'}</span></div>
-                  <div><span className="text-gray-500">Address:</span> <span className="font-medium">{selectedOrder.delivery_address ?? '—'}</span></div>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 overflow-hidden">
+          {/* Gradient header */}
+          <div className="relative overflow-hidden bg-gradient-to-r from-[#0D47A1] to-[#1976D2] px-6 py-5 text-white flex-shrink-0">
+            <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-white/10" />
+            <div className="absolute right-10 -bottom-10 w-24 h-24 rounded-full bg-white/5" />
+            <DialogHeader className="relative">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <span className="font-extrabold text-sm">
+                      {(selectedOrder?.user_name ?? '??').slice(0, 2).toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <DialogTitle className="text-white text-lg font-bold">
+                      {selectedOrder?.user_name ?? '—'}
+                    </DialogTitle>
+                    <p className="text-blue-200 text-xs mt-0.5 font-mono">
+                      #{selectedOrder?.id.slice(0, 8).toUpperCase()} · {selectedOrder ? formatDate(selectedOrder.created_at) : ''}
+                    </p>
+                  </div>
                 </div>
+                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${selectedOrder ? STATUS_COLORS[selectedOrder.status] : ''}`}>
+                    {selectedOrder ? (STATUS_LABELS[selectedOrder.status] ?? selectedOrder.status) : ''}
+                  </span>
+                  <p className="font-extrabold text-white text-lg">{formatCurrency(selectedOrder?.total ?? 0)}</p>
+                </div>
+              </div>
+            </DialogHeader>
+          </div>
+
+          {selectedOrder && (
+            <div className="space-y-4 p-5">
+              {/* Customer Info */}
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { icon: '📱', label: 'Simu', value: selectedOrder.user_phone },
+                  { icon: '📧', label: 'Barua Pepe', value: selectedOrder.user_email },
+                  { icon: '📍', label: 'Anwani', value: selectedOrder.delivery_address },
+                ].filter(f => f.value).map(f => (
+                  <div key={f.label} className="bg-gray-50 rounded-xl px-3.5 py-2.5">
+                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">{f.icon} {f.label}</p>
+                    <p className="text-sm font-medium text-gray-800 mt-0.5">{f.value}</p>
+                  </div>
+                ))}
               </div>
 
               {/* Items */}
               <div>
-                <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-2">Items</h3>
-                <div className="space-y-2">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Bidhaa Zilizonunuliwa</p>
+                <div className="space-y-1.5">
                   {(selectedOrder.items ?? []).map((item, i) => (
-                    <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3 text-sm">
-                      <div>
-                        <span className="font-medium text-gray-800">{item.product_name}</span>
-                        <span className="text-gray-500 ml-2">Size {item.size}</span>
+                    <div key={i} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3 text-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-[#0D47A1]/10 flex items-center justify-center text-[#0D47A1] font-bold text-xs">
+                          {i + 1}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-800">{item.product_name}</p>
+                          <p className="text-xs text-gray-400">Size {item.size} · x{item.quantity}</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-gray-600">x{item.quantity}</span>
-                        <span className="ml-3 font-semibold">{formatCurrency(item.price * item.quantity)}</span>
-                      </div>
+                      <p className="font-bold text-gray-800">{formatCurrency(item.price * item.quantity)}</p>
                     </div>
                   ))}
                 </div>
-              </div>
-
-              {/* Totals */}
-              <div className="border-t pt-3 space-y-1 text-sm">
-                <div className="flex justify-between text-gray-600">
-                  <span>Subtotal</span><span>{formatCurrency(selectedOrder.subtotal ?? 0)}</span>
-                </div>
-                <div className="flex justify-between font-bold text-base text-gray-800 pt-1">
-                  <span>Total</span><span className="text-[#0D47A1]">{formatCurrency(selectedOrder.total ?? 0)}</span>
+                <div className="flex justify-between items-center mt-2 px-4 py-3 bg-[#0D47A1]/5 rounded-xl">
+                  <span className="font-bold text-gray-700">Jumla</span>
+                  <span className="font-extrabold text-[#0D47A1] text-lg">{formatCurrency(selectedOrder.total ?? 0)}</span>
                 </div>
               </div>
 
               {/* Payment Info */}
-              <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">Payment</h3>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-gray-500">Method:</span> <span className="font-medium">{PAYMENT_LABELS[selectedOrder.payment_method as keyof typeof PAYMENT_LABELS] ?? selectedOrder.payment_method ?? '—'}</span></div>
-                  <div><span className="text-gray-500">Status:</span> <span className="font-medium">{selectedOrder.payment_status ?? '—'}</span></div>
-                  {selectedOrder.mpesa_ref && (
-                    <div><span className="text-gray-500">M-Pesa Ref:</span> <span className="font-medium font-mono">{selectedOrder.mpesa_ref}</span></div>
+              {(selectedOrder.payment_method || selectedOrder.payment_status) && (
+                <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wide">Malipo</p>
+                  <div className="flex flex-wrap gap-3 text-sm">
+                    {selectedOrder.payment_method && (
+                      <span className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 font-medium">
+                        {PAYMENT_LABELS[selectedOrder.payment_method as keyof typeof PAYMENT_LABELS] ?? selectedOrder.payment_method}
+                      </span>
+                    )}
+                    {selectedOrder.mpesa_ref && (
+                      <span className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 font-mono text-xs">{selectedOrder.mpesa_ref}</span>
+                    )}
+                  </div>
+                  {selectedOrder.payment_proof_url && (
+                    <img src={selectedOrder.payment_proof_url} alt="Payment proof" className="rounded-lg max-h-40 object-cover mt-2" />
                   )}
                 </div>
-                {selectedOrder.payment_proof_url && (
-                  <div className="mt-2">
-                    <p className="text-gray-500 text-sm mb-1">Payment Proof:</p>
-                    <img src={selectedOrder.payment_proof_url} alt="Payment proof" className="rounded-lg max-h-40 object-cover" />
-                  </div>
-                )}
-              </div>
+              )}
+
+              {/* Print button */}
+              <button
+                onClick={() => printReceipt(selectedOrder)}
+                className="w-full flex items-center justify-center gap-2 h-10 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-xl text-sm cursor-pointer transition-colors border border-emerald-100"
+              >
+                <Printer className="w-4 h-4" /> Chapisha Risiti
+              </button>
 
               {/* Safari Info Card */}
               {selectedOrder.status === 'in_transit' && !showTransitFields && (selectedOrder.vehicle_number || selectedOrder.conductor_phone) && (

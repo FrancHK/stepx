@@ -91,3 +91,12 @@ export interface MsafiriUser {
   disabled: boolean
   created_at: string
 }
+
+export interface Mteja {
+  id: string
+  name: string
+  phone: string
+  location: string
+  notes: string
+  created_at: string
+}
