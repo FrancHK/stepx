@@ -29,7 +29,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     {
       cookies: {
         getAll() { return cookieStore.getAll() },
-        setAll() {},
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {}
+        },
       },
     }
   )
