@@ -59,6 +59,7 @@ export default function ShopClient({
   const [filterBrands, setFilterBrands] = useState<string[]>([])
   const [filterNew, setFilterNew] = useState(false)
   const [filterHot, setFilterHot] = useState(false)
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null)
   const [form, setForm] = useState({ name: '', phone: '', address: '' })
   const [submitting, setSubmitting] = useState(false)
   const [orderId, setOrderId] = useState('')
@@ -639,7 +640,12 @@ export default function ShopClient({
                   {/* Image — portrait ratio */}
                   <div className="relative overflow-hidden bg-gray-100" style={{ aspectRatio: '3/4' }}>
                     {product.images?.[0] ? (
-                      <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                      <img
+                        src={product.images[0]}
+                        alt={product.name}
+                        className="w-full h-full object-cover cursor-zoom-in"
+                        onClick={() => setZoomedImage(product.images[0])}
+                      />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-gray-50 to-gray-100">
                         <span className="text-4xl">👟</span>
@@ -760,6 +766,27 @@ export default function ShopClient({
               </div>
             </div>
           </button>
+        </div>
+      )}
+
+      {/* ── IMAGE LIGHTBOX ── */}
+      {zoomedImage && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/95 flex items-center justify-center p-4"
+          onClick={() => setZoomedImage(null)}
+        >
+          <button
+            className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/25 rounded-full flex items-center justify-center cursor-pointer transition-colors z-10"
+            onClick={() => setZoomedImage(null)}
+          >
+            <X className="w-5 h-5 text-white" />
+          </button>
+          <img
+            src={zoomedImage}
+            alt="Picha kubwa"
+            className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          />
         </div>
       )}
 
