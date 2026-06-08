@@ -7,6 +7,7 @@ import {
   CheckCircle2, Package, Phone, MapPin, Truck, ArrowLeft,
   Building2, ChevronDown, SlidersHorizontal, Sparkles, Flame, Tag,
 } from 'lucide-react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { formatCurrency } from '@/lib/utils'
@@ -506,12 +507,8 @@ export default function ShopClient({
       <div className="bg-gradient-to-r from-[#0D47A1] to-[#1976D2] sticky top-0 z-30">
         <div className="px-4 pt-4 pb-2 flex items-center gap-3">
           {/* Logo */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center text-lg">👟</div>
-            <div className="leading-tight">
-              <p className="font-black text-white text-base tracking-wide">StepX</p>
-              <p className="text-white/60 text-[9px] tracking-widest uppercase">Viatu Bora</p>
-            </div>
+          <div className="flex items-center flex-shrink-0">
+            <Image src="/logo.png" alt="StepX" width={90} height={40} className="object-contain" priority />
           </div>
           {/* Search */}
           <div className="flex-1 relative">

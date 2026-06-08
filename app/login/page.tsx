@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { ShoppingBag, Loader2, Eye, EyeOff } from 'lucide-react'
+import { Loader2, Eye, EyeOff } from 'lucide-react'
+import Image from 'next/image'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -48,11 +49,8 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 bg-[#0D47A1] rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-              <ShoppingBag className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold text-[#0D47A1]">StepX</h1>
-            <p className="text-gray-500 text-sm mt-1">Admin Panel — Ingia akaunti yako</p>
+            <Image src="/logo.png" alt="StepX" width={120} height={80} className="object-contain mb-2" priority />
+            <p className="text-gray-500 text-sm">Admin Panel — Ingia akaunti yako</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
