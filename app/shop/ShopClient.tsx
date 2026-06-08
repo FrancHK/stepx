@@ -274,17 +274,14 @@ export default function ShopClient({
       const itemLines = cart.map(i =>
         `• ${i.product_name} (Size: ${i.size}) ×${i.quantity} — ${formatCurrency(i.price * i.quantity)}`
       ).join('\n')
-      const transportLine = finalCompany
-        ? `\n🚚 *Usafiri:* ${finalCompany}${finalPhone ? ` · ${finalPhone}` : ''}${transitLocation ? `\n📍 *Location:* ${transitLocation}` : ''}`
-        : transitLocation ? `\n📍 *Location:* ${transitLocation}` : ''
       const msg =
         `🛍️ *ORDER MPYA - StepX*\n\n` +
         `📋 *Order ID:* #${shortId}\n` +
         `👤 *Mteja:* ${form.name}\n` +
         `📱 *Simu:* ${form.phone}\n` +
-        `📍 *Delivery:* ${form.address || 'Haijawekwa'}` +
-        transportLine +
-        `\n\n*Bidhaa:*\n${itemLines}\n\n` +
+        (transitLocation ? `📍 *Location:* ${transitLocation}\n` : '') +
+        (finalCompany ? `🚚 *Usafiri:* ${finalCompany}\n` : '') +
+        `\n*Bidhaa:*\n${itemLines}\n\n` +
         `💰 *JUMLA: ${formatCurrency(subtotal)}*\n\n` +
         `📅 *Tarehe:* ${new Date().toLocaleDateString('en-GB')}`
       window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank')
@@ -379,115 +376,90 @@ export default function ShopClient({
             </div>
           </div>
 
-          {/* Customer Details */}
+          {/* Combined customer + transport form */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
-            <h2 className="font-semibold text-gray-800 text-sm">Taarifa Zako</h2>
+            <h2 className="font-semibold text-gray-800 text-sm">Taarifa za Ununuzi</h2>
+
+            {/* Name */}
             <div className="relative">
               <Package className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input placeholder="Jina lako kamili *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="pl-10" />
             </div>
+
+            {/* Phone */}
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input placeholder="Namba ya simu *" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className="pl-10" type="tel" />
             </div>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input placeholder="Anwani ya delivery (optional)" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} className="pl-10" />
-            </div>
-          </div>
 
-          {/* Transport / Delivery */}
-          <div className="rounded-2xl border-2 border-blue-100 bg-gradient-to-b from-blue-50/60 to-white p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-[#0D47A1] flex items-center justify-center flex-shrink-0">
-                <Truck className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p className="font-bold text-[#0D47A1] text-sm">Usafiri wa Bidhaa</p>
-                <p className="text-[10px] text-gray-400">Chagua kampuni au andika mkononi (si lazima)</p>
-              </div>
+            {/* Divider */}
+            <div className="flex items-center gap-3 pt-1">
+              <div className="flex-1 h-px bg-gray-100" />
+              <span className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wide">
+                <Truck className="w-3 h-3" /> Usafiri
+              </span>
+              <div className="flex-1 h-px bg-gray-100" />
             </div>
 
-            {/* Transporter select — only if any exist */}
+            {/* Transporter dropdown — show name only */}
             {transporters.length > 0 && (
-              <div className="space-y-1.5">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1">
-                  <Building2 className="w-3 h-3" /> Kampuni ya Usafiri
-                </p>
-                <div className="relative">
-                  <select
-                    value={selectedTransporterId}
-                    onChange={e => handleTransporterSelect(e.target.value)}
-                    className="w-full h-10 rounded-xl border border-blue-200 bg-white px-3 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] appearance-none cursor-pointer"
-                  >
-                    <option value="__manual__">— Andika mkononi —</option>
-                    {transporters.map(t => (
-                      <option key={t.id} value={t.id}>{t.name}{t.phone ? ` · ${t.phone}` : ''}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                </div>
+              <div className="relative">
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
+                <select
+                  value={selectedTransporterId}
+                  onChange={e => handleTransporterSelect(e.target.value)}
+                  className="w-full h-10 rounded-xl border border-gray-200 bg-white pl-10 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] appearance-none cursor-pointer"
+                >
+                  <option value="__manual__">Kampuni ya Usafiri (chagua au andika)</option>
+                  {transporters.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
             )}
 
-            {/* Manual fields — shown when "manual" selected or no transporters */}
-            {(selectedTransporterId === '__manual__') && (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                  <Input
-                    placeholder="Jina la kampuni"
-                    value={transportCompany}
-                    onChange={e => setTransportCompany(e.target.value)}
-                    className="pl-9 border-blue-200 text-sm h-10"
-                  />
-                </div>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                  <Input
-                    placeholder="Namba ya simu"
-                    value={transportPhone}
-                    onChange={e => setTransportPhone(e.target.value)}
-                    className="pl-9 border-blue-200 text-sm h-10"
-                    type="tel"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Location with autocomplete */}
-            <div className="space-y-1.5">
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1">
-                <MapPin className="w-3 h-3" /> Location ya Delivery
-              </p>
-              <div ref={locationRef} className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 z-10" />
+            {/* Manual company name only */}
+            {selectedTransporterId === '__manual__' && (
+              <div className="relative">
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
-                  placeholder="Andika au chagua location..."
-                  value={transitLocation}
-                  onChange={e => { setTransitLocation(e.target.value); setLocationDropdownOpen(true) }}
-                  onFocus={() => setLocationDropdownOpen(true)}
-                  className="pl-9 border-blue-200 text-sm h-10"
+                  placeholder="Jina la kampuni ya usafiri (optional)"
+                  value={transportCompany}
+                  onChange={e => setTransportCompany(e.target.value)}
+                  className="pl-10 border-gray-200 text-sm"
                 />
-                {locationDropdownOpen && filteredLocations.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-blue-100 shadow-xl z-50 overflow-hidden max-h-44 overflow-y-auto">
-                    {filteredLocations.map(loc => (
-                      <button
-                        key={loc.id}
-                        type="button"
-                        onMouseDown={() => { setTransitLocation(loc.name); setLocationDropdownOpen(false) }}
-                        className="w-full text-left px-4 py-2.5 hover:bg-blue-50 transition-colors flex items-center gap-2.5"
-                      >
-                        <MapPin className="w-3.5 h-3.5 text-[#0D47A1] flex-shrink-0" />
-                        <div>
-                          <p className="text-sm font-semibold text-gray-800">{loc.name}</p>
-                          {loc.address && <p className="text-xs text-gray-400">{loc.address}</p>}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
+            )}
+
+            {/* Location autocomplete */}
+            <div ref={locationRef} className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+              <Input
+                placeholder="Location ya delivery (optional)"
+                value={transitLocation}
+                onChange={e => { setTransitLocation(e.target.value); setLocationDropdownOpen(true) }}
+                onFocus={() => setLocationDropdownOpen(true)}
+                className="pl-10 border-gray-200 text-sm"
+              />
+              {locationDropdownOpen && filteredLocations.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 shadow-xl z-50 overflow-hidden max-h-44 overflow-y-auto">
+                  {filteredLocations.map(loc => (
+                    <button
+                      key={loc.id}
+                      type="button"
+                      onMouseDown={() => { setTransitLocation(loc.name); setLocationDropdownOpen(false) }}
+                      className="w-full text-left px-4 py-2.5 hover:bg-blue-50 transition-colors flex items-center gap-2.5"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-[#0D47A1] flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">{loc.name}</p>
+                        {loc.address && <p className="text-xs text-gray-400">{loc.address}</p>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
