@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@supabase/supabase-js'
+import { sendPushToAll } from '@/lib/push'
 
 function adminClient() {
   return createClient(
@@ -51,5 +52,13 @@ export async function submitGuestOrder(input: GuestOrderInput): Promise<string> 
     .single()
 
   if (error) throw new Error(error.message)
+
+  const totalItems = input.items.reduce((s, i) => s + i.quantity, 0)
+  await sendPushToAll(
+    '🛍️ Order Mpya — StepX',
+    `${input.user_name} · ${totalItems} bidhaa · TZS ${Math.round(input.total).toLocaleString()}`,
+    '/admin/orders'
+  ).catch(() => {})
+
   return data.id
 }

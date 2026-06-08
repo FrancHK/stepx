@@ -211,6 +211,17 @@ BEGIN
   RAISE NOTICE 'Admin user created: %', new_user_id;
 END $$;
 
+-- PUSH SUBSCRIPTIONS TABLE
+CREATE TABLE IF NOT EXISTS public.push_subscriptions (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  endpoint   text NOT NULL UNIQUE,
+  p256dh     text NOT NULL,
+  auth       text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "push_service_role" ON public.push_subscriptions USING (true) WITH CHECK (true);
+
 -- LOCATIONS TABLE
 CREATE TABLE IF NOT EXISTS public.locations (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),

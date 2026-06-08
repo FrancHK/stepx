@@ -2,6 +2,7 @@
 
 import { Menu, ShoppingBag } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import PushToggle from './PushToggle'
 
 interface NavbarProps {
   onMenuClick: () => void
@@ -27,6 +28,7 @@ export default function Navbar({ onMenuClick, adminEmail }: NavbarProps) {
       </div>
 
       <div className="flex items-center gap-3 ml-auto">
+        <PushToggle />
         <div className="hidden sm:block text-right">
           <p className="text-sm font-semibold text-gray-800">Administrator</p>
           <p className="text-xs text-gray-500">{adminEmail}</p>
