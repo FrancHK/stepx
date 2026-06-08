@@ -40,14 +40,20 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   )
 
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.email !== 'admin@stepx.com') {
-    redirect('/login')
-  }
+  if (!user) redirect('/login')
+
+  const { data: profile } = await supabase
+    .from('msafiri_users')
+    .select('role, name, phone')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'admin') redirect('/login')
 
   const pendingCount = await getPendingCount()
 
   return (
-    <AdminLayoutClient pendingCount={pendingCount} adminEmail={user.email!}>
+    <AdminLayoutClient pendingCount={pendingCount} adminEmail={profile.name ?? profile.phone ?? user.email!}>
       {children}
     </AdminLayoutClient>
   )
