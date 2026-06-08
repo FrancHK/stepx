@@ -60,6 +60,7 @@ export default function ShopClient({
   const [orderId, setOrderId] = useState('')
   const [receiptCart, setReceiptCart] = useState<CartItem[]>([])
   const [receiptForm, setReceiptForm] = useState({ name: '', phone: '', address: '' })
+  const [receiptTransport, setReceiptTransport] = useState({ company: '', location: '' })
 
   // Transport state
   const [selectedTransporterId, setSelectedTransporterId] = useState('__manual__')
@@ -149,91 +150,90 @@ export default function ShopClient({
     )
   }
 
-  function downloadReceipt(id: string, items: CartItem[], total: number, customer: { name: string; phone: string; address: string }) {
-    const date = new Date().toLocaleDateString('en-GB')
+  function downloadReceipt(
+    id: string,
+    items: CartItem[],
+    total: number,
+    customer: { name: string; phone: string; address: string },
+    transport?: { company: string; location: string }
+  ) {
+    const date = new Date().toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
     const rows = items.map(i => `
       <tr>
-        <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0">
-          <div style="font-weight:600;color:#1a1a1a">${i.product_name}</div>
-          <div style="color:#888;font-size:12px;margin-top:2px">Saizi: ${i.size} &nbsp;·&nbsp; Vifurushi: ${i.quantity}</div>
+        <td style="padding:9px 0;border-bottom:1px solid #f0f4f8">
+          <div style="font-weight:700;color:#1a1a2e;font-size:13px">${i.product_name}</div>
+          <div style="color:#888;font-size:11px;margin-top:2px">Saizi: ${i.size} &nbsp;·&nbsp; Mfuko &times;${i.quantity}</div>
         </td>
-        <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:700;color:#0D47A1;white-space:nowrap">
+        <td style="padding:9px 0;border-bottom:1px solid #f0f4f8;text-align:right;font-weight:800;color:#0D47A1;white-space:nowrap;font-size:13px">
           ${formatCurrency(i.price * i.quantity)}
         </td>
       </tr>`).join('')
 
+    const transportSection = (transport?.company || transport?.location) ? `
+      <div style="margin-bottom:14px;background:#E8F5E9;border-radius:10px;padding:12px 14px;border-left:3px solid #4CAF50">
+        <div style="font-size:9px;color:#2E7D32;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">🚚 Usafiri</div>
+        ${transport.company ? `<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:#555">Kampuni</span><span style="font-weight:700;color:#1a1a2e">${transport.company}</span></div>` : ''}
+        ${transport.location ? `<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#555">Location</span><span style="font-weight:700;color:#1a1a2e">${transport.location}</span></div>` : ''}
+      </div>` : ''
+
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-      <title>Risiti - StepX #${id}</title>
+      <title>Risiti StepX #${id}</title>
       <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Segoe UI',Arial,sans-serif;background:#f5f5f5;display:flex;justify-content:center;padding:30px}
-        .card{background:#fff;width:420px;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.10)}
-        @media print{body{background:#fff;padding:0}.card{box-shadow:none;border-radius:0;width:100%}.no-print{display:none}}
+        body{font-family:'Segoe UI',Arial,sans-serif;background:#e8ecf0;display:flex;justify-content:center;min-height:100vh;padding:24px}
+        .receipt{background:#fff;width:360px;border-radius:4px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.15)}
+        .cut{border-top:2px dashed #ddd;margin:0 16px;position:relative}
+        .cut::before,.cut::after{content:'';position:absolute;top:-8px;width:14px;height:14px;background:#e8ecf0;border-radius:50%}
+        .cut::before{left:-23px}.cut::after{right:-23px}
+        @media print{body{background:#fff;padding:0}.receipt{box-shadow:none;width:100%;border-radius:0}.no-print{display:none}.cut::before,.cut::after{background:#fff}}
       </style>
-    </head><body>
-      <div class="card">
-        <!-- Header -->
-        <div style="background:linear-gradient(135deg,#0D47A1,#1976D2);padding:28px 24px;text-align:center">
-          <div style="font-size:28px;margin-bottom:6px">👟</div>
-          <div style="color:#fff;font-size:22px;font-weight:800;letter-spacing:1px">StepX</div>
-          <div style="color:#90CAF9;font-size:12px;margin-top:4px;text-transform:uppercase;letter-spacing:2px">Risiti ya Ununuzi</div>
-        </div>
-
-        <!-- Order ID -->
-        <div style="background:#E3F2FD;padding:14px 24px;display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px">Order ID</div>
-            <div style="font-size:18px;font-weight:800;color:#0D47A1">#${id}</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px">Tarehe</div>
-            <div style="font-size:14px;font-weight:600;color:#333">${date}</div>
-          </div>
-        </div>
-
-        <!-- Customer -->
-        <div style="padding:16px 24px;border-bottom:1px solid #f0f0f0">
-          <div style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Taarifa za Mteja</div>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
-            <span style="color:#0D47A1">👤</span>
-            <span style="font-weight:600;color:#1a1a1a">${customer.name}</span>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
-            <span style="color:#0D47A1">📱</span>
-            <span style="color:#444">${customer.phone}</span>
-          </div>
-          ${customer.address ? `<div style="display:flex;gap:8px;align-items:center">
-            <span style="color:#0D47A1">📍</span>
-            <span style="color:#444">${customer.address}</span>
-          </div>` : ''}
-        </div>
-
-        <!-- Items -->
-        <div style="padding:16px 24px 0">
-          <div style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Bidhaa</div>
-          <table style="width:100%;border-collapse:collapse">${rows}</table>
-        </div>
-
-        <!-- Total -->
-        <div style="margin:0 24px 24px;background:linear-gradient(135deg,#0D47A1,#1976D2);border-radius:12px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
-          <div style="color:#90CAF9;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Jumla Yote</div>
-          <div style="color:#fff;font-size:22px;font-weight:800">${formatCurrency(total)}</div>
-        </div>
-
-        <!-- Footer -->
-        <div style="background:#fafafa;padding:16px 24px;text-align:center;border-top:1px solid #f0f0f0">
-          <div style="color:#999;font-size:11px">Asante kwa ununuzi wako!</div>
-          <div style="color:#bbb;font-size:10px;margin-top:4px">StepX · +255 758 285 354</div>
-        </div>
-
-        <!-- Print Button -->
-        <div class="no-print" style="padding:0 24px 24px;text-align:center">
-          <button onclick="window.print()" style="background:#0D47A1;color:#fff;border:none;padding:12px 32px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;width:100%">
-            📄 Pakua / Chapisha PDF
-          </button>
+    </head><body><div class="receipt">
+      <div style="background:linear-gradient(160deg,#0D47A1 0%,#1565C0 60%,#1976D2 100%);padding:24px 20px 20px;text-align:center">
+        <div style="width:48px;height:48px;background:rgba(255,255,255,.2);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px;font-size:24px">👟</div>
+        <div style="color:#fff;font-size:20px;font-weight:900;letter-spacing:2px">STEPX</div>
+        <div style="color:#90CAF9;font-size:10px;margin-top:3px;letter-spacing:3px;text-transform:uppercase">Risiti ya Ununuzi</div>
+        <div style="display:inline-block;background:rgba(255,255,255,.15);border-radius:20px;padding:4px 14px;margin-top:10px">
+          <span style="color:#fff;font-size:16px;font-weight:900;letter-spacing:1px">#${id}</span>
         </div>
       </div>
-    </body></html>`
+      <div style="background:#F8FAFF;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #EEF2FF">
+        <div style="font-size:11px;color:#666">&#128197; ${date}</div>
+        <div style="font-size:10px;background:#E8F5E9;color:#2E7D32;font-weight:700;padding:3px 10px;border-radius:20px">&#10003; IMETUMWA</div>
+      </div>
+      <div style="padding:16px 20px">
+        <div style="margin-bottom:14px">
+          <div style="font-size:9px;color:#999;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">Mteja</div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span style="color:#555">Jina</span><span style="font-weight:700;color:#1a1a2e">${customer.name}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px">
+            <span style="color:#555">Simu</span><span style="font-weight:700;color:#1a1a2e">${customer.phone}</span>
+          </div>
+        </div>
+        ${transportSection}
+        <div style="margin-bottom:12px">
+          <div style="font-size:9px;color:#999;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">Bidhaa Zilizonomua</div>
+          <table style="width:100%;border-collapse:collapse">${rows}</table>
+        </div>
+        <div style="background:linear-gradient(135deg,#0D47A1,#1565C0);border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+          <div>
+            <div style="color:#90CAF9;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Jumla Yote</div>
+            <div style="color:rgba(255,255,255,.7);font-size:10px;margin-top:2px">${items.length} aina ya bidhaa</div>
+          </div>
+          <div style="color:#fff;font-size:22px;font-weight:900">${formatCurrency(total)}</div>
+        </div>
+      </div>
+      <div class="cut" style="margin:4px 20px"></div>
+      <div style="padding:14px 20px 20px;text-align:center">
+        <div style="font-size:11px;color:#888;margin-bottom:4px">Asante kwa ununuzi wako! &#128591;</div>
+        <div style="font-size:10px;color:#aaa">StepX &nbsp;&middot;&nbsp; +255 758 285 354</div>
+      </div>
+      <div class="no-print" style="padding:0 20px 20px">
+        <button onclick="window.print()" style="background:#0D47A1;color:#fff;border:none;padding:11px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;width:100%">
+          &#128438; Chapisha / Pakua PDF
+        </button>
+      </div>
+    </div></body></html>`
 
     const w = window.open('', '_blank')
     if (w) { w.document.write(html); w.document.close() }
@@ -288,6 +288,7 @@ export default function ShopClient({
 
       setReceiptCart([...cart])
       setReceiptForm({ name: form.name, phone: form.phone, address: form.address })
+      setReceiptTransport({ company: finalCompany, location: transitLocation })
       setOrderId(shortId)
       setStep('success')
       setCart([])
@@ -319,7 +320,7 @@ export default function ShopClient({
           <p className="text-gray-400 text-xs">Order imepelekwa WhatsApp — tutawasiliana nawe hivi karibuni.</p>
 
           <button
-            onClick={() => downloadReceipt(orderId, receiptCart, receiptTotal, receiptForm)}
+            onClick={() => downloadReceipt(orderId, receiptCart, receiptTotal, receiptForm, receiptTransport)}
             className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-2xl cursor-pointer transition-all"
           >
             <Package className="w-5 h-5" /> Pakua Risiti (PDF)

@@ -105,15 +105,14 @@ export default function OrdersClient({ initialOrders, transporters, locations }:
 
   async function updateStatus() {
     if (!selectedOrder) return
-    if (showTransitFields && (!vehicleNumber.trim() || !conductorPhone.trim())) {
-      toast.error('Weka namba ya gari na namba ya kondakta!')
+    if (showTransitFields && !vehicleNumber.trim()) {
+      toast.error('Weka namba ya gari!')
       return
     }
     setUpdating(true)
     try {
       const extra = showTransitFields ? {
         vehicle_number: vehicleNumber.trim(),
-        conductor_phone: conductorPhone.trim(),
         transport_company: transportCompany.trim(),
         transport_phone: transportPhone.trim(),
         transit_location: transitLocation.trim(),
@@ -131,83 +130,87 @@ export default function OrdersClient({ initialOrders, transporters, locations }:
   }
 
   function printReceipt(order: Order) {
-    const date = new Date(order.created_at).toLocaleDateString('en-GB')
+    const date = new Date(order.created_at).toLocaleDateString('sw-TZ', { day: '2-digit', month: 'long', year: 'numeric' })
     const statusLabel: Record<string, string> = {
       pending: 'Inasubiri', confirmed: 'Imethibitishwa', processing: 'Inashughulikiwa',
       in_transit: 'Safarini', delivered: 'Imewasilishwa', cancelled: 'Imefutwa',
     }
     const rows = (order.items ?? []).map(i => `
       <tr>
-        <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0">
-          <div style="font-weight:600;color:#1a1a1a">${i.product_name}</div>
-          <div style="color:#888;font-size:12px;margin-top:2px">Saizi: ${i.size} &nbsp;·&nbsp; Idadi: ${i.quantity}</div>
+        <td style="padding:9px 0;border-bottom:1px solid #f0f4f8">
+          <div style="font-weight:700;color:#1a1a2e;font-size:13px">${i.product_name}</div>
+          <div style="color:#888;font-size:11px;margin-top:2px">Saizi: ${i.size} &nbsp;&middot;&nbsp; Mfuko &times;${i.quantity}</div>
         </td>
-        <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:700;color:#0D47A1;white-space:nowrap">
+        <td style="padding:9px 0;border-bottom:1px solid #f0f4f8;text-align:right;font-weight:800;color:#0D47A1;white-space:nowrap;font-size:13px">
           ${formatCurrency(i.price * i.quantity)}
         </td>
       </tr>`).join('')
+
+    const transportSection = (order.transport_company || order.transit_location || order.vehicle_number) ? `
+      <div style="margin-bottom:14px;background:#E3F2FD;border-radius:10px;padding:12px 14px;border-left:3px solid #1976D2">
+        <div style="font-size:9px;color:#0D47A1;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">&#128665; Usafiri wa Mzigo</div>
+        ${order.transport_company ? `<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:#555">Kampuni</span><span style="font-weight:700;color:#1a1a2e">${order.transport_company}</span></div>` : ''}
+        ${order.vehicle_number ? `<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:#555">Namba ya Gari</span><span style="font-weight:700;color:#1a1a2e">${order.vehicle_number}</span></div>` : ''}
+        ${order.transit_location ? `<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#555">Location</span><span style="font-weight:700;color:#1a1a2e">${order.transit_location}</span></div>` : ''}
+      </div>` : ''
 
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
       <title>Risiti #${order.id.slice(0,8).toUpperCase()} - StepX</title>
       <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Segoe UI',Arial,sans-serif;background:#f5f5f5;display:flex;justify-content:center;padding:30px}
-        .card{background:#fff;width:440px;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.10)}
-        @media print{body{background:#fff;padding:0}.card{box-shadow:none;border-radius:0;width:100%}.no-print{display:none}}
+        body{font-family:'Segoe UI',Arial,sans-serif;background:#e8ecf0;display:flex;justify-content:center;min-height:100vh;padding:24px}
+        .receipt{background:#fff;width:360px;border-radius:4px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.15)}
+        .cut{border-top:2px dashed #ddd;margin:0 16px;position:relative}
+        .cut::before,.cut::after{content:'';position:absolute;top:-8px;width:14px;height:14px;background:#e8ecf0;border-radius:50%}
+        .cut::before{left:-23px}.cut::after{right:-23px}
+        @media print{body{background:#fff;padding:0}.receipt{box-shadow:none;width:100%;border-radius:0}.no-print{display:none}.cut::before,.cut::after{background:#fff}}
       </style>
-    </head><body><div class="card">
-      <div style="background:linear-gradient(135deg,#0D47A1,#1976D2);padding:28px 24px;text-align:center">
-        <div style="font-size:28px;margin-bottom:6px">👟</div>
-        <div style="color:#fff;font-size:22px;font-weight:800;letter-spacing:1px">StepX</div>
-        <div style="color:#90CAF9;font-size:11px;margin-top:4px;text-transform:uppercase;letter-spacing:2px">Risiti ya Manunuzi</div>
-      </div>
-      <div style="background:#E3F2FD;padding:14px 24px;display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px">Order ID</div>
-          <div style="font-size:18px;font-weight:800;color:#0D47A1">#${order.id.slice(0,8).toUpperCase()}</div>
-        </div>
-        <div style="text-align:center">
-          <div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px">Hali</div>
-          <div style="font-size:13px;font-weight:700;color:#0D47A1">${statusLabel[order.status] ?? order.status}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px">Tarehe</div>
-          <div style="font-size:13px;font-weight:600;color:#333">${date}</div>
+    </head><body><div class="receipt">
+      <div style="background:linear-gradient(160deg,#0D47A1 0%,#1565C0 60%,#1976D2 100%);padding:24px 20px 20px;text-align:center">
+        <div style="width:48px;height:48px;background:rgba(255,255,255,.2);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px;font-size:24px">&#128095;</div>
+        <div style="color:#fff;font-size:20px;font-weight:900;letter-spacing:2px">STEPX</div>
+        <div style="color:#90CAF9;font-size:10px;margin-top:3px;letter-spacing:3px;text-transform:uppercase">Risiti ya Manunuzi</div>
+        <div style="display:inline-block;background:rgba(255,255,255,.15);border-radius:20px;padding:4px 14px;margin-top:10px">
+          <span style="color:#fff;font-size:16px;font-weight:900;letter-spacing:1px">#${order.id.slice(0,8).toUpperCase()}</span>
         </div>
       </div>
-      <div style="padding:16px 24px;border-bottom:1px solid #f0f0f0">
-        <div style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Taarifa za Mteja</div>
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><span style="color:#0D47A1">👤</span><span style="font-weight:600;color:#1a1a1a">${order.user_name ?? '—'}</span></div>
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><span style="color:#0D47A1">📱</span><span style="color:#444">${order.user_phone ?? '—'}</span></div>
-        ${order.delivery_address ? `<div style="display:flex;gap:8px;align-items:center"><span style="color:#0D47A1">📍</span><span style="color:#444">${order.delivery_address}</span></div>` : ''}
+      <div style="background:#F8FAFF;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #EEF2FF">
+        <div style="font-size:11px;color:#666">&#128197; ${date}</div>
+        <div style="font-size:10px;background:#E3F2FD;color:#0D47A1;font-weight:700;padding:3px 10px;border-radius:20px">${statusLabel[order.status] ?? order.status}</div>
       </div>
-      <div style="padding:16px 24px 0">
-        <div style="font-size:10px;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Bidhaa</div>
-        <table style="width:100%;border-collapse:collapse">${rows}</table>
-      </div>
-      <div style="margin:16px 24px;background:#f8f9fa;border-radius:10px;padding:12px 16px">
-        <div style="display:flex;justify-content:space-between;font-size:13px;color:#666;margin-bottom:6px">
-          <span>Subtotal</span><span>${formatCurrency(order.subtotal ?? 0)}</span>
+      <div style="padding:16px 20px">
+        <div style="margin-bottom:14px">
+          <div style="font-size:9px;color:#999;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">Mteja</div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span style="color:#555">Jina</span><span style="font-weight:700;color:#1a1a2e">${order.user_name ?? '—'}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px${order.user_email || order.delivery_address ? ';margin-bottom:4px' : ''}">
+            <span style="color:#555">Simu</span><span style="font-weight:700;color:#1a1a2e">${order.user_phone ?? '—'}</span>
+          </div>
+          ${order.user_email ? `<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:#555">Barua Pepe</span><span style="font-weight:700;color:#1a1a2e">${order.user_email}</span></div>` : ''}
+          ${order.delivery_address ? `<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#555">Anwani</span><span style="font-weight:700;color:#1a1a2e;text-align:right;max-width:60%">${order.delivery_address}</span></div>` : ''}
         </div>
-        <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:800;color:#0D47A1;border-top:1px solid #e5e7eb;padding-top:8px">
-          <span>JUMLA YOTE</span><span>${formatCurrency(order.total ?? 0)}</span>
+        ${transportSection}
+        <div style="margin-bottom:12px">
+          <div style="font-size:9px;color:#999;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">Bidhaa Zilizononunuliwa</div>
+          <table style="width:100%;border-collapse:collapse">${rows}</table>
+        </div>
+        <div style="background:linear-gradient(135deg,#0D47A1,#1565C0);border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+          <div>
+            <div style="color:#90CAF9;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px">Jumla Yote</div>
+            <div style="color:rgba(255,255,255,.7);font-size:10px;margin-top:2px">${(order.items ?? []).length} aina ya bidhaa</div>
+          </div>
+          <div style="color:#fff;font-size:22px;font-weight:900">${formatCurrency(order.total ?? 0)}</div>
         </div>
       </div>
-      ${order.vehicle_number ? `
-      <div style="margin:0 24px 16px;background:#E3F2FD;border-radius:10px;padding:12px 16px">
-        <div style="font-size:10px;color:#0D47A1;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🚌 Taarifa za Safari</div>
-        <div style="display:flex;gap:16px;font-size:13px">
-          <div><span style="color:#666">Gari:</span> <strong>${order.vehicle_number}</strong></div>
-          <div><span style="color:#666">Kondakta:</span> <strong>${order.conductor_phone ?? '—'}</strong></div>
-        </div>
-      </div>` : ''}
-      <div style="background:#fafafa;padding:16px 24px;text-align:center;border-top:1px solid #f0f0f0">
-        <div style="color:#999;font-size:11px">Asante kwa ununuzi wako!</div>
-        <div style="color:#bbb;font-size:10px;margin-top:4px">StepX · +255 758 285 354</div>
+      <div class="cut" style="margin:4px 20px"></div>
+      <div style="padding:14px 20px 20px;text-align:center">
+        <div style="font-size:11px;color:#888;margin-bottom:4px">Asante kwa ununuzi wako! &#128591;</div>
+        <div style="font-size:10px;color:#aaa">StepX &nbsp;&middot;&nbsp; +255 758 285 354</div>
       </div>
-      <div class="no-print" style="padding:0 24px 24px;text-align:center">
-        <button onclick="window.print()" style="background:#0D47A1;color:#fff;border:none;padding:12px 32px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;width:100%">
-          🖨️ Chapisha / Pakua PDF
+      <div class="no-print" style="padding:0 20px 20px">
+        <button onclick="window.print()" style="background:#0D47A1;color:#fff;border:none;padding:11px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;width:100%">
+          &#128438; Chapisha / Pakua PDF
         </button>
       </div>
     </div></body></html>`
@@ -496,7 +499,7 @@ export default function OrdersClient({ initialOrders, transporters, locations }:
               </button>
 
               {/* Safari Info Card */}
-              {selectedOrder.status === 'in_transit' && !showTransitFields && (selectedOrder.vehicle_number || selectedOrder.conductor_phone) && (
+              {selectedOrder.status === 'in_transit' && !showTransitFields && (selectedOrder.vehicle_number || selectedOrder.transport_company || selectedOrder.transit_location) && (
                 <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0D47A1] to-[#1565C0] p-5 text-white shadow-lg">
                   <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-white/10" />
                   <div className="absolute -right-2 -bottom-8 w-20 h-20 rounded-full bg-white/5" />
@@ -514,14 +517,12 @@ export default function OrdersClient({ initialOrders, transporters, locations }:
                           <p className="font-bold">{selectedOrder.transport_company} {selectedOrder.transport_phone ? `· ${selectedOrder.transport_phone}` : ''}</p>
                         </div>
                       )}
-                      <div className="bg-white/10 rounded-xl p-3">
-                        <p className="text-blue-200 text-[10px] uppercase tracking-wide mb-1 flex items-center gap-1"><Hash className="w-3 h-3" />Namba ya Gari</p>
-                        <p className="font-bold">{selectedOrder.vehicle_number ?? '—'}</p>
-                      </div>
-                      <div className="bg-white/10 rounded-xl p-3">
-                        <p className="text-blue-200 text-[10px] uppercase tracking-wide mb-1 flex items-center gap-1"><Phone className="w-3 h-3" />Kondakta</p>
-                        <p className="font-bold">{selectedOrder.conductor_phone ?? '—'}</p>
-                      </div>
+                      {selectedOrder.vehicle_number && (
+                        <div className="bg-white/10 rounded-xl p-3">
+                          <p className="text-blue-200 text-[10px] uppercase tracking-wide mb-1 flex items-center gap-1"><Hash className="w-3 h-3" />Namba ya Gari</p>
+                          <p className="font-bold">{selectedOrder.vehicle_number}</p>
+                        </div>
+                      )}
                       {selectedOrder.transit_location && (
                         <div className="bg-white/10 rounded-xl p-3 col-span-2">
                           <p className="text-blue-200 text-[10px] uppercase tracking-wide mb-1 flex items-center gap-1"><MapPin className="w-3 h-3" />Location</p>
@@ -603,30 +604,17 @@ export default function OrdersClient({ initialOrders, transporters, locations }:
                       )}
                     </div>
 
-                    {/* Vehicle + Conductor */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1">
-                          <Hash className="w-3 h-3" /> Namba ya Gari
-                        </p>
-                        <Input
-                          placeholder="T 123 ABC"
-                          value={vehicleNumber}
-                          onChange={e => setVehicleNumber(e.target.value)}
-                          className="bg-white border-blue-200 text-sm h-10"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1">
-                          <Phone className="w-3 h-3" /> Kondakta
-                        </p>
-                        <Input
-                          placeholder="0712345678"
-                          value={conductorPhone}
-                          onChange={e => setConductorPhone(e.target.value)}
-                          className="bg-white border-blue-200 text-sm h-10"
-                        />
-                      </div>
+                    {/* Vehicle number — full width */}
+                    <div className="space-y-1.5">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1">
+                        <Hash className="w-3 h-3" /> Namba ya Gari *
+                      </p>
+                      <Input
+                        placeholder="T 123 ABC"
+                        value={vehicleNumber}
+                        onChange={e => setVehicleNumber(e.target.value)}
+                        className="bg-white border-blue-200 text-sm h-10"
+                      />
                     </div>
 
                     {/* Location with autocomplete */}
@@ -666,12 +654,22 @@ export default function OrdersClient({ initialOrders, transporters, locations }:
                   </div>
                 )}
 
+                {showTransitFields && (
+                  <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-3">
+                    <div className="w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-xs font-bold">!</span>
+                    </div>
+                    <p className="text-xs text-amber-800 font-medium leading-relaxed">
+                      Hakikisha mzigo umesafiri — bonyeza kitufe hapa chini kuthibitisha kwamba bidhaa zimepanda gari na zinaelekea kwa mteja.
+                    </p>
+                  </div>
+                )}
                 <Button
                   onClick={updateStatus}
                   disabled={updating || (newStatus === selectedOrder.status && !showTransitFields)}
                   className="w-full bg-[#0D47A1] hover:bg-[#0a3880] cursor-pointer h-11 font-semibold"
                 >
-                  {updating ? 'Inahifadhi...' : showTransitFields ? 'Tuma Safari' : 'Sasisha Status'}
+                  {updating ? 'Inahifadhi...' : showTransitFields ? '✓ Hakikisha Mzigo Umesafiri' : 'Sasisha Status'}
                 </Button>
               </div>
             </div>
