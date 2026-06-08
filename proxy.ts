@@ -25,21 +25,21 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
   const pathname = request.nextUrl.pathname
 
   if (pathname.startsWith('/admin')) {
-    if (!user || user.email !== 'admin@stepx.com') {
+    if (!session) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
   }
 
-  if (pathname === '/login' && user?.email === 'admin@stepx.com') {
+  if (pathname === '/login' && session) {
     return NextResponse.redirect(new URL('/admin/dashboard', request.url))
   }
 
   if (pathname === '/') {
-    if (user?.email === 'admin@stepx.com') {
+    if (session) {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url))
     }
     return NextResponse.redirect(new URL('/login', request.url))
