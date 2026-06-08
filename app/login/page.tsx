@@ -48,8 +48,7 @@ export default function LoginPage() {
       }
 
       toast.success('Umeingia kwa mafanikio!')
-      router.push('/admin/dashboard')
-      router.refresh()
+      window.location.href = '/admin/dashboard'
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Kuna tatizo. Jaribu tena.'
       toast.error(msg)
