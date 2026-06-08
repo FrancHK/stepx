@@ -12,6 +12,10 @@ const rubik = Rubik({
 export const metadata: Metadata = {
   title: "StepX — Admin Panel",
   description: "StepX Admin Dashboard",
+  icons: {
+    icon: [{ url: '/logo.png', type: 'image/png' }],
+    apple: '/logo.png',
+  },
 };
 
 export default function RootLayout({
