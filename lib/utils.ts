@@ -7,8 +7,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(amount: number): string {
-  return `TZS ${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+export function formatCurrency(amount: number | null | undefined): string {
+  const n = Math.round(amount ?? 0)
+  const formatted = n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return `TZS ${formatted}`
 }
 
 export function formatDate(dateStr: string): string {

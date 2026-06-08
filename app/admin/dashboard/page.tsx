@@ -1,16 +1,14 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 import { ShoppingBag, Clock, Loader2, CheckCircle, XCircle, Package, Users, TrendingUp, CalendarDays } from 'lucide-react'
 import { formatCurrency, formatDate, STATUS_LABELS, STATUS_COLORS } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
+import ShopLinkCard from '@/components/admin/ShopLinkCard'
 import type { Order } from '@/lib/types'
 
 async function getDashboardData() {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
+  const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
   const [
@@ -82,6 +80,9 @@ export default async function DashboardPage() {
         <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
         <p className="text-gray-500 text-sm mt-1">Welcome back, Administrator</p>
       </div>
+
+      {/* Shop Link */}
+      <ShopLinkCard />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

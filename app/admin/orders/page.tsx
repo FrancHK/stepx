@@ -1,19 +1,17 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 import OrdersClient from './OrdersClient'
 import type { Order } from '@/lib/types'
 
 async function getOrders(): Promise<Order[]> {
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
+  const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll() { return cookieStore.getAll() }, setAll() {} } }
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('orders')
     .select('*')
     .order('created_at', { ascending: false })
+  if (error) console.error('Orders fetch error:', error.message)
   return (data ?? []) as Order[]
 }
 

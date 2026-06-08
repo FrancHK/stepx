@@ -56,6 +56,10 @@ CREATE TABLE IF NOT EXISTS public.orders (
   payment_proof_url text,
   vehicle_number    text,
   conductor_phone   text,
+  brand_name        text,
+  transit_location  text,
+  transport_company text,
+  transport_phone   text,
   created_at        timestamptz DEFAULT now(),
   updated_at        timestamptz DEFAULT now()
 );
@@ -206,6 +210,18 @@ BEGIN
 
   RAISE NOTICE 'Admin user created: %', new_user_id;
 END $$;
+
+-- LOCATIONS TABLE
+CREATE TABLE IF NOT EXISTS public.locations (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        text NOT NULL,
+  address     text NOT NULL DEFAULT '',
+  description text NOT NULL DEFAULT '',
+  active      boolean NOT NULL DEFAULT true,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.locations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "locations_service_role" ON public.locations USING (true) WITH CHECK (true);
 
 -- VERIFY
 SELECT 'products' as tbl, count(*) FROM public.products

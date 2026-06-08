@@ -48,8 +48,38 @@ export interface Order {
   payment_proof_url: string
   vehicle_number: string
   conductor_phone: string
+  brand_name: string
+  transit_location: string
+  transport_company: string
+  transport_phone: string
   created_at: string
   updated_at: string
+}
+
+export interface Brand {
+  id: string
+  name: string
+  active: boolean
+  created_at: string
+}
+
+export interface Location {
+  id: string
+  name: string
+  address: string
+  description: string
+  active: boolean
+  created_at: string
+}
+
+export interface Transporter {
+  id: string
+  name: string
+  phone: string
+  location: string
+  description: string
+  active: boolean
+  created_at: string
 }
 
 export interface MsafiriUser {
