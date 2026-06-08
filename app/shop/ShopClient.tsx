@@ -1,16 +1,17 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
 import {
   ShoppingCart, X, Plus, Minus, Search, ChevronRight,
   CheckCircle2, Package, Phone, MapPin, Truck, ArrowLeft,
+  Building2, ChevronDown,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { formatCurrency } from '@/lib/utils'
 import { submitGuestOrder } from './actions'
-import type { Product } from '@/lib/types'
+import type { Product, Transporter, Location } from '@/lib/types'
 
 interface CartItem {
   product_id: string
@@ -40,7 +41,15 @@ function getSizeRange(product: Product): string {
   return keys.length === 1 ? keys[0] : `${keys[0]} - ${keys[keys.length - 1]}`
 }
 
-export default function ShopClient({ products }: { products: Product[] }) {
+export default function ShopClient({
+  products,
+  transporters = [],
+  locations = [],
+}: {
+  products: Product[]
+  transporters?: Transporter[]
+  locations?: Location[]
+}) {
   const [cart, setCart] = useState<CartItem[]>([])
   const [cartOpen, setCartOpen] = useState(false)
   const [step, setStep] = useState<'browse' | 'checkout' | 'success'>('browse')
@@ -51,6 +60,48 @@ export default function ShopClient({ products }: { products: Product[] }) {
   const [orderId, setOrderId] = useState('')
   const [receiptCart, setReceiptCart] = useState<CartItem[]>([])
   const [receiptForm, setReceiptForm] = useState({ name: '', phone: '', address: '' })
+
+  // Transport state
+  const [selectedTransporterId, setSelectedTransporterId] = useState('__manual__')
+  const [transportCompany, setTransportCompany] = useState('')
+  const [transportPhone, setTransportPhone] = useState('')
+  const [transitLocation, setTransitLocation] = useState('')
+  const [locationDropdownOpen, setLocationDropdownOpen] = useState(false)
+  const locationRef = useRef<HTMLDivElement>(null)
+
+  const filteredLocations = useMemo(() =>
+    locations.filter(l => l.name.toLowerCase().includes(transitLocation.toLowerCase()) && transitLocation.length > 0),
+    [locations, transitLocation]
+  )
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
+        setLocationDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  function handleTransporterSelect(id: string) {
+    setSelectedTransporterId(id)
+    if (id === '__manual__') {
+      setTransportCompany('')
+      setTransportPhone('')
+    } else {
+      const t = transporters.find(t => t.id === id)
+      if (t) { setTransportCompany(t.name); setTransportPhone(t.phone ?? '') }
+    }
+  }
+
+  function resetTransport() {
+    setSelectedTransporterId('__manual__')
+    setTransportCompany('')
+    setTransportPhone('')
+    setTransitLocation('')
+    setLocationDropdownOpen(false)
+  }
 
   const categories = useMemo(() => {
     const cats = Array.from(new Set(products.map(p => p.category).filter(Boolean)))
@@ -193,6 +244,13 @@ export default function ShopClient({ products }: { products: Product[] }) {
     if (!form.phone.trim()) { toast.error('Weka namba ya simu'); return }
     setSubmitting(true)
     try {
+      const finalCompany = selectedTransporterId !== '__manual__'
+        ? transporters.find(t => t.id === selectedTransporterId)?.name ?? transportCompany
+        : transportCompany
+      const finalPhone = selectedTransporterId !== '__manual__'
+        ? transporters.find(t => t.id === selectedTransporterId)?.phone ?? transportPhone
+        : transportPhone
+
       const id = await submitGuestOrder({
         user_name: form.name,
         user_phone: form.phone,
@@ -206,6 +264,9 @@ export default function ShopClient({ products }: { products: Product[] }) {
         })),
         subtotal,
         total: subtotal,
+        transport_company: finalCompany || undefined,
+        transport_phone: finalPhone || undefined,
+        transit_location: transitLocation || undefined,
       })
       const shortId = id.slice(0, 8).toUpperCase()
 
@@ -213,13 +274,17 @@ export default function ShopClient({ products }: { products: Product[] }) {
       const itemLines = cart.map(i =>
         `• ${i.product_name} (Size: ${i.size}) ×${i.quantity} — ${formatCurrency(i.price * i.quantity)}`
       ).join('\n')
+      const transportLine = finalCompany
+        ? `\n🚚 *Usafiri:* ${finalCompany}${finalPhone ? ` · ${finalPhone}` : ''}${transitLocation ? `\n📍 *Location:* ${transitLocation}` : ''}`
+        : transitLocation ? `\n📍 *Location:* ${transitLocation}` : ''
       const msg =
         `🛍️ *ORDER MPYA - StepX*\n\n` +
         `📋 *Order ID:* #${shortId}\n` +
         `👤 *Mteja:* ${form.name}\n` +
         `📱 *Simu:* ${form.phone}\n` +
-        `📍 *Delivery:* ${form.address || 'Haijawekwa'}\n\n` +
-        `*Bidhaa:*\n${itemLines}\n\n` +
+        `📍 *Delivery:* ${form.address || 'Haijawekwa'}` +
+        transportLine +
+        `\n\n*Bidhaa:*\n${itemLines}\n\n` +
         `💰 *JUMLA: ${formatCurrency(subtotal)}*\n\n` +
         `📅 *Tarehe:* ${new Date().toLocaleDateString('en-GB')}`
       window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank')
@@ -229,6 +294,7 @@ export default function ShopClient({ products }: { products: Product[] }) {
       setOrderId(shortId)
       setStep('success')
       setCart([])
+      resetTransport()
     } catch (e: unknown) {
       toast.error((e as Error).message ?? 'Kuna tatizo. Jaribu tena.')
     } finally {
@@ -263,7 +329,7 @@ export default function ShopClient({ products }: { products: Product[] }) {
           </button>
 
           <Button
-            onClick={() => { setStep('browse'); setForm({ name: '', phone: '', address: '' }) }}
+            onClick={() => { setStep('browse'); setForm({ name: '', phone: '', address: '' }); resetTransport() }}
             className="w-full bg-[#0D47A1] hover:bg-[#0a3880] cursor-pointer"
           >
             Rudi Dukani
@@ -327,6 +393,101 @@ export default function ShopClient({ products }: { products: Product[] }) {
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input placeholder="Anwani ya delivery (optional)" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} className="pl-10" />
+            </div>
+          </div>
+
+          {/* Transport / Delivery */}
+          <div className="rounded-2xl border-2 border-blue-100 bg-gradient-to-b from-blue-50/60 to-white p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-[#0D47A1] flex items-center justify-center flex-shrink-0">
+                <Truck className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="font-bold text-[#0D47A1] text-sm">Usafiri wa Bidhaa</p>
+                <p className="text-[10px] text-gray-400">Chagua kampuni au andika mkononi (si lazima)</p>
+              </div>
+            </div>
+
+            {/* Transporter select — only if any exist */}
+            {transporters.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1">
+                  <Building2 className="w-3 h-3" /> Kampuni ya Usafiri
+                </p>
+                <div className="relative">
+                  <select
+                    value={selectedTransporterId}
+                    onChange={e => handleTransporterSelect(e.target.value)}
+                    className="w-full h-10 rounded-xl border border-blue-200 bg-white px-3 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0D47A1]/20 focus:border-[#0D47A1] appearance-none cursor-pointer"
+                  >
+                    <option value="__manual__">— Andika mkononi —</option>
+                    {transporters.map(t => (
+                      <option key={t.id} value={t.id}>{t.name}{t.phone ? ` · ${t.phone}` : ''}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+            )}
+
+            {/* Manual fields — shown when "manual" selected or no transporters */}
+            {(selectedTransporterId === '__manual__') && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                  <Input
+                    placeholder="Jina la kampuni"
+                    value={transportCompany}
+                    onChange={e => setTransportCompany(e.target.value)}
+                    className="pl-9 border-blue-200 text-sm h-10"
+                  />
+                </div>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                  <Input
+                    placeholder="Namba ya simu"
+                    value={transportPhone}
+                    onChange={e => setTransportPhone(e.target.value)}
+                    className="pl-9 border-blue-200 text-sm h-10"
+                    type="tel"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Location with autocomplete */}
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1">
+                <MapPin className="w-3 h-3" /> Location ya Delivery
+              </p>
+              <div ref={locationRef} className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 z-10" />
+                <Input
+                  placeholder="Andika au chagua location..."
+                  value={transitLocation}
+                  onChange={e => { setTransitLocation(e.target.value); setLocationDropdownOpen(true) }}
+                  onFocus={() => setLocationDropdownOpen(true)}
+                  className="pl-9 border-blue-200 text-sm h-10"
+                />
+                {locationDropdownOpen && filteredLocations.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-blue-100 shadow-xl z-50 overflow-hidden max-h-44 overflow-y-auto">
+                    {filteredLocations.map(loc => (
+                      <button
+                        key={loc.id}
+                        type="button"
+                        onMouseDown={() => { setTransitLocation(loc.name); setLocationDropdownOpen(false) }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-blue-50 transition-colors flex items-center gap-2.5"
+                      >
+                        <MapPin className="w-3.5 h-3.5 text-[#0D47A1] flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800">{loc.name}</p>
+                          {loc.address && <p className="text-xs text-gray-400">{loc.address}</p>}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

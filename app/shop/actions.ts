@@ -26,6 +26,9 @@ export interface GuestOrderInput {
   items: GuestOrderItem[]
   subtotal: number
   total: number
+  transport_company?: string
+  transport_phone?: string
+  transit_location?: string
 }
 
 export async function submitGuestOrder(input: GuestOrderInput): Promise<string> {
@@ -47,6 +50,9 @@ export async function submitGuestOrder(input: GuestOrderInput): Promise<string> 
       status: 'pending',
       payment_method: input.payment_method ?? 'manual',
       payment_status: 'pending',
+      transport_company: input.transport_company?.trim() || null,
+      transport_phone: input.transport_phone?.trim() || null,
+      transit_location: input.transit_location?.trim() || null,
     })
     .select('id')
     .single()
