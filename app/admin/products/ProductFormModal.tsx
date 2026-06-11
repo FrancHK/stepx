@@ -669,7 +669,7 @@ export default function ProductFormModal({ open, product, onClose, onSaved }: Pr
         </div>
 
       </DialogContent>
-    </Dialog> 
+    </Dialog>
   )
 }
 
