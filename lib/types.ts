@@ -2,6 +2,7 @@ export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'in_transit' 
 export type PaymentMethod = 'mpesa' | 'card' | 'cod' | 'manual'
 export type Category = 'yebo' | 'sendo' | 'mabuti' | 'ndara' | 'boti_boti'
 export type AgeGroup = 'mtoto' | 'kijana' | 'mtu_mzima'
+export type Gender = 'kike' | 'kiume' | 'zote'
 
 export interface Product {
   id: string
@@ -19,6 +20,7 @@ export interface Product {
   size_type: 'single' | 'range'
   is_trending: boolean
   is_new: boolean
+  gender: Gender
   created_at: string
 }
 
@@ -88,6 +90,7 @@ export interface MsafiriUser {
   email: string
   phone: string
   customer_type: 'retail' | 'wholesale'
+  gender: 'kike' | 'kiume' | null
   disabled: boolean
   created_at: string
 }

@@ -14,12 +14,12 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { formatCurrency, CATEGORY_LABELS, AGE_GROUP_LABELS } from '@/lib/utils'
-import type { Product, Category, AgeGroup } from '@/lib/types'
+import type { Product, Brand, Category, AgeGroup } from '@/lib/types'
 import ProductFormModal from './ProductFormModal'
 
-interface Props { initialProducts: Product[] }
+interface Props { initialProducts: Product[]; brands: Brand[] }
 
-export default function ProductsClient({ initialProducts }: Props) {
+export default function ProductsClient({ initialProducts, brands }: Props) {
   const [products, setProducts] = useState<Product[]>(initialProducts)
   const [search, setSearch] = useState('')
   const [catFilter, setCatFilter] = useState('all')
@@ -246,6 +246,7 @@ export default function ProductsClient({ initialProducts }: Props) {
       <ProductFormModal
         open={showForm}
         product={editingProduct}
+        brands={brands}
         onClose={() => setShowForm(false)}
         onSaved={onSaved}
       />

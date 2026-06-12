@@ -13,12 +13,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { Product, Category, AgeGroup } from '@/lib/types'
-import { CATEGORY_LABELS, AGE_GROUP_LABELS } from '@/lib/utils'
+import type { Product, Brand, Category, AgeGroup, Gender } from '@/lib/types'
+import { CATEGORY_LABELS, AGE_GROUP_LABELS, GENDER_LABELS } from '@/lib/utils'
 
 interface Props {
   open: boolean
   product: Product | null
+  brands: Brand[]
   onClose: () => void
   onSaved: (product: Product, isNew: boolean) => void
 }
@@ -27,7 +28,7 @@ const EMPTY: Omit<Product, 'id' | 'created_at'> = {
   name: '', brand: '', category: 'yebo', description: '',
   wholesale_price: 0, retail_price: 0, stock: {}, images: [],
   active: true, age_group: 'kijana', color: {}, size_type: 'single',
-  is_trending: false, is_new: false,
+  is_trending: false, is_new: false, gender: 'zote',
 }
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -60,7 +61,7 @@ interface UploadedImage {
   local?: string
 }
 
-export default function ProductFormModal({ open, product, onClose, onSaved }: Props) {
+export default function ProductFormModal({ open, product, brands, onClose, onSaved }: Props) {
   const [form, setForm] = useState(EMPTY)
   const [rangeFrom, setRangeFrom] = useState('')
   const [rangeTo, setRangeTo] = useState('')
@@ -88,6 +89,7 @@ export default function ProductFormModal({ open, product, onClose, onSaved }: Pr
         images: product.images ?? [], active: product.active, age_group: product.age_group,
         color: product.color ?? {}, size_type: product.size_type,
         is_trending: product.is_trending, is_new: product.is_new,
+        gender: product.gender ?? 'zote',
       })
       const keys = Object.keys(product.stock ?? {}).map(Number).filter(Boolean).sort((a, b) => a - b)
       const vals = Object.values(product.stock ?? {})
@@ -264,12 +266,19 @@ export default function ProductFormModal({ open, product, onClose, onSaved }: Pr
                     </div>
                     <div className="space-y-2">
                       <FieldLabel required>Brand</FieldLabel>
-                      <Input
-                        value={form.brand}
-                        onChange={e => set('brand', e.target.value)}
-                        placeholder="mfano: Nike"
-                        className="h-11 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors"
-                      />
+                      <Select value={form.brand} onValueChange={v => set('brand', v ?? '')}>
+                        <SelectTrigger className="h-11 border-slate-200 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors focus:ring-2 focus:ring-[#0D47A1]/10">
+                          <SelectValue placeholder="Chagua brand..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {brands.length === 0 && (
+                            <div className="px-3 py-2 text-xs text-slate-400">Hakuna brands — ongeza kwenye sehemu ya Brands</div>
+                          )}
+                          {brands.map(b => (
+                            <SelectItem key={b.id} value={b.name} className="text-sm">{b.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
@@ -300,6 +309,20 @@ export default function ProductFormModal({ open, product, onClose, onSaved }: Pr
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <FieldLabel>Jinsia</FieldLabel>
+                    <Select value={form.gender} onValueChange={v => set('gender', v as Gender)}>
+                      <SelectTrigger className="h-11 border-slate-200 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors focus:ring-2 focus:ring-[#0D47A1]/10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(GENDER_LABELS).map(([k, v]) => (
+                          <SelectItem key={k} value={k} className="text-sm">{v}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-2">

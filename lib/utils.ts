@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format } from "date-fns"
-import type { OrderStatus, PaymentMethod, Category, AgeGroup } from "./types"
+import type { OrderStatus, PaymentMethod, Category, AgeGroup, Gender } from "./types"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -58,6 +58,12 @@ export const AGE_GROUP_LABELS: Record<AgeGroup, string> = {
   mtoto: 'Mtoto',
   kijana: 'Kijana',
   mtu_mzima: 'Mtu Mzima',
+}
+
+export const GENDER_LABELS: Record<Gender, string> = {
+  kike: 'Kike',
+  kiume: 'Kiume',
+  zote: 'Zote (Kike & Kiume)',
 }
 
 export const ORDER_STATUSES: OrderStatus[] = [
