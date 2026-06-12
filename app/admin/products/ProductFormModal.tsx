@@ -75,7 +75,8 @@ export default function ProductFormModal({ open, product, onClose, onSaved }: Pr
   const to = parseInt(rangeTo) || 0
   const qty = parseInt(rangeQty) || 0
   const sizeCount = (from > 0 && to >= from) ? (to - from + 1) : 0
-  const totalPcs = sizeCount * qty
+  const totalPcs = qty
+  const qtyPerSize = sizeCount > 0 ? Math.floor(totalPcs / sizeCount) : 0
   const sizeList = sizeCount > 0 ? Array.from({ length: sizeCount }, (_, i) => from + i) : []
 
   useEffect(() => {
@@ -185,7 +186,7 @@ export default function ProductFormModal({ open, product, onClose, onSaved }: Pr
     setSaving(true)
     try {
       const stock: Record<string, number> = {}
-      sizeList.forEach(size => { stock[String(size)] = qty })
+      sizeList.forEach(size => { stock[String(size)] = qtyPerSize })
       const finalImages = images.filter(i => i.url && !i.error).map(i => i.url)
       const payload = { ...form, stock, images: finalImages }
       const supabase = createClient()
@@ -391,10 +392,10 @@ export default function ProductFormModal({ open, product, onClose, onSaved }: Pr
                       />
                     </div>
                     <div className="space-y-2">
-                      <FieldLabel required>Pcs kwa Saizi Moja</FieldLabel>
+                      <FieldLabel required>Jumla ya Pcs</FieldLabel>
                       <Input
                         type="number"
-                        placeholder="mfano: 3"
+                        placeholder="mfano: 30"
                         value={rangeQty}
                         onChange={e => setRangeQty(e.target.value)}
                         className="h-11 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm shadow-sm text-center font-semibold"
@@ -416,10 +417,11 @@ export default function ProductFormModal({ open, product, onClose, onSaved }: Pr
                       {/* Jumla */}
                       <div className="border-t border-[#0D47A1]/10 px-4 py-3 flex items-center justify-between bg-white/60">
                         <div className="flex items-center gap-4 text-xs text-slate-500">
+                          <span>Jumla <strong className="text-slate-700">{totalPcs}</strong> pcs</span>
+                          <span>÷</span>
                           <span>Saizi <strong className="text-slate-700">{sizeCount}</strong></span>
-                          <span>×</span>
-                          <span>Pcs <strong className="text-slate-700">{qty}</strong></span>
                           <span>=</span>
+                          <span><strong className="text-slate-700">{qtyPerSize}</strong> kila saizi</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-slate-500">Jumla ya Stoki</span>
