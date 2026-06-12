@@ -248,27 +248,62 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
           <div className="flex flex-col w-[55%] border-r border-slate-200/70 overflow-hidden">
             <div className="flex-1 px-6 py-4 space-y-3">
 
-              {/* Basic Info Card */}
-              <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
-                <div className="px-5 py-2.5 border-b border-slate-100 bg-slate-50/60">
-                  <SectionTitle icon={Tag} title="Taarifa za Msingi" />
-                </div>
-                <div className="px-5 py-3 space-y-3">
-                  {/* Row 1: Jina + Brand */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <FieldLabel required>Jina la Bidhaa</FieldLabel>
-                      <Input
-                        value={form.name}
-                        onChange={e => set('name', e.target.value)}
-                        placeholder="mfano: Nike Air Max 270"
-                        className="h-10 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors"
-                      />
+              {/* ══ TAARIFA ZA MSINGI — Premium Card ══ */}
+              <div className="bg-white rounded-2xl border border-blue-100/80 shadow-[0_2px_16px_rgba(13,71,161,0.07)] overflow-hidden">
+
+                {/* Gradient header */}
+                <div className="relative px-5 py-3 overflow-hidden bg-gradient-to-r from-[#0D47A1]/8 via-[#1565C0]/4 to-transparent border-b border-blue-100/60">
+                  <div className="absolute right-0 top-0 w-32 h-full bg-gradient-to-l from-[#E3F2FD]/60 to-transparent" />
+                  <div className="absolute right-8 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[#0D47A1]/6 blur-xl" />
+                  <div className="relative flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0D47A1] to-[#1976D2] flex items-center justify-center shadow-lg shadow-blue-300/40 flex-shrink-0">
+                      <Tag className="w-4 h-4 text-white" />
                     </div>
+                    <div>
+                      <p className="text-xs font-bold text-[#0D47A1] uppercase tracking-widest">Taarifa za Msingi</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5 font-medium">Jina, brand, aina na maelezo ya bidhaa</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="px-5 py-4 space-y-4">
+
+                  {/* ─ Row 1: Jina + Brand ─ */}
+                  <div className="grid grid-cols-2 gap-4">
+
+                    {/* Jina la Bidhaa */}
                     <div className="space-y-1.5">
-                      <FieldLabel required>Brand</FieldLabel>
+                      <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#0D47A1] flex-shrink-0" />
+                        Jina la Bidhaa <span className="text-red-400 normal-case font-semibold ml-0.5">*</span>
+                      </label>
+                      <div className="relative group">
+                        <Input
+                          value={form.name}
+                          onChange={e => set('name', e.target.value)}
+                          placeholder="mfano: Nike Air Max 270"
+                          className="h-11 pl-4 pr-9 rounded-xl border-slate-200 bg-slate-50/60 text-sm
+                            hover:border-[#0D47A1]/40 hover:bg-white
+                            focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 focus:bg-white
+                            transition-all duration-200 shadow-sm placeholder:text-slate-300"
+                        />
+                        {form.name && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-200 transition-all duration-300" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Brand */}
+                    <div className="space-y-1.5">
+                      <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <span className="w-1.5 h-1.5 rounded-full bg-violet-500 flex-shrink-0" />
+                        Brand <span className="text-red-400 normal-case font-semibold ml-0.5">*</span>
+                      </label>
                       <Select value={form.brand} onValueChange={v => set('brand', v ?? '')}>
-                        <SelectTrigger className="h-10 border-slate-200 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors focus:ring-2 focus:ring-[#0D47A1]/10">
+                        <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-slate-50/60 text-sm
+                          hover:border-[#0D47A1]/40 hover:bg-white
+                          focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10
+                          transition-all duration-200 shadow-sm">
                           <SelectValue placeholder="Chagua brand..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -283,12 +318,22 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
                     </div>
                   </div>
 
-                  {/* Row 2: Kategoria + Kundi la Umri + Jinsia */}
-                  <div className="grid grid-cols-3 gap-3">
+                  {/* ─ Row 2: Kategoria + Umri + Jinsia — grouped chip panel ─ */}
+                  <div className="rounded-xl border border-slate-100 bg-gradient-to-br from-slate-50/80 to-blue-50/30 p-3 grid grid-cols-3 gap-3">
+
+                    {/* Kategoria */}
                     <div className="space-y-1.5">
-                      <FieldLabel>Kategoria</FieldLabel>
+                      <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <span className="w-4 h-4 rounded-md bg-orange-100 border border-orange-200 flex items-center justify-center flex-shrink-0">
+                          <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                        </span>
+                        Kategoria
+                      </label>
                       <Select value={form.category} onValueChange={v => set('category', v as Category)}>
-                        <SelectTrigger className="h-10 border-slate-200 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors focus:ring-2 focus:ring-[#0D47A1]/10">
+                        <SelectTrigger className="h-9 rounded-lg border-slate-200 bg-white text-xs font-medium
+                          hover:border-orange-300 hover:bg-orange-50/30
+                          focus:ring-orange-200 focus:border-orange-300
+                          transition-all duration-200 shadow-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -298,10 +343,20 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* Umri */}
                     <div className="space-y-1.5">
-                      <FieldLabel>Umri</FieldLabel>
+                      <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <span className="w-4 h-4 rounded-md bg-emerald-100 border border-emerald-200 flex items-center justify-center flex-shrink-0">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        </span>
+                        Umri
+                      </label>
                       <Select value={form.age_group} onValueChange={v => set('age_group', v as AgeGroup)}>
-                        <SelectTrigger className="h-10 border-slate-200 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors focus:ring-2 focus:ring-[#0D47A1]/10">
+                        <SelectTrigger className="h-9 rounded-lg border-slate-200 bg-white text-xs font-medium
+                          hover:border-emerald-300 hover:bg-emerald-50/30
+                          focus:ring-emerald-200 focus:border-emerald-300
+                          transition-all duration-200 shadow-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -311,10 +366,20 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* Jinsia */}
                     <div className="space-y-1.5">
-                      <FieldLabel>Jinsia</FieldLabel>
+                      <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <span className="w-4 h-4 rounded-md bg-pink-100 border border-pink-200 flex items-center justify-center flex-shrink-0">
+                          <span className="w-1.5 h-1.5 rounded-full bg-pink-400" />
+                        </span>
+                        Jinsia
+                      </label>
                       <Select value={form.gender} onValueChange={v => set('gender', v as Gender)}>
-                        <SelectTrigger className="h-10 border-slate-200 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors focus:ring-2 focus:ring-[#0D47A1]/10">
+                        <SelectTrigger className="h-9 rounded-lg border-slate-200 bg-white text-xs font-medium
+                          hover:border-pink-300 hover:bg-pink-50/30
+                          focus:ring-pink-200 focus:border-pink-300
+                          transition-all duration-200 shadow-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -326,17 +391,31 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
                     </div>
                   </div>
 
-                  {/* Row 3: Maelezo */}
+                  {/* ─ Row 3: Maelezo ─ */}
                   <div className="space-y-1.5">
-                    <FieldLabel>Maelezo</FieldLabel>
-                    <textarea
-                      value={form.description}
-                      onChange={e => set('description', e.target.value)}
-                      rows={2}
-                      placeholder="Elezea bidhaa hii kwa undani — vifaa, rangi, ubora..."
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#0D47A1]/10 focus:border-[#0D47A1] placeholder:text-slate-300 transition-colors shadow-sm hover:border-slate-300"
-                    />
+                    <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-300 flex-shrink-0" />
+                      Maelezo
+                    </label>
+                    <div className="relative group">
+                      <textarea
+                        value={form.description}
+                        onChange={e => set('description', e.target.value)}
+                        rows={2}
+                        placeholder="Elezea bidhaa hii kwa undani — vifaa, rangi, ubora..."
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-2.5 text-sm resize-none
+                          hover:border-[#0D47A1]/40 hover:bg-white
+                          focus:outline-none focus:ring-2 focus:ring-[#0D47A1]/10 focus:border-[#0D47A1] focus:bg-white
+                          placeholder:text-slate-300 transition-all duration-200 shadow-sm"
+                      />
+                      {form.description.length > 0 && (
+                        <span className="absolute bottom-2 right-3 text-[10px] text-slate-300 font-medium pointer-events-none">
+                          {form.description.length}
+                        </span>
+                      )}
+                    </div>
                   </div>
+
                 </div>
               </div>
 
