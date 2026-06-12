@@ -92,10 +92,10 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
         gender: product.gender ?? 'zote',
       })
       const keys = Object.keys(product.stock ?? {}).map(Number).filter(Boolean).sort((a, b) => a - b)
-      const vals = Object.values(product.stock ?? {})
+      const perSize = keys.length > 0 ? Number((product.stock ?? {})[String(keys[0])]) : 0
       setRangeFrom(keys.length > 0 ? String(keys[0]) : '')
       setRangeTo(keys.length > 0 ? String(keys[keys.length - 1]) : '')
-      setRangeQty(vals.length > 0 ? String(vals[0]) : '')
+      setRangeQty(keys.length > 0 && perSize > 0 ? String(perSize * keys.length) : '')
       setImages((product.images ?? []).map(url => ({ url, name: url.split('/').pop() ?? 'picha' })))
     } else {
       setForm(EMPTY)
@@ -220,21 +220,21 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
       <DialogContent className="max-w-[96vw] sm:max-w-[96vw] w-[1500px] h-[97vh] p-0 gap-0 flex flex-col overflow-hidden rounded-2xl shadow-2xl border-0">
 
         {/* ── HEADER ── */}
-        <DialogHeader className="flex-shrink-0 px-10 py-6 bg-gradient-to-r from-[#0D47A1] via-[#1565C0] to-[#1976D2] relative overflow-hidden">
+        <DialogHeader className="flex-shrink-0 px-8 py-4 bg-gradient-to-r from-[#0D47A1] via-[#1565C0] to-[#1976D2] relative overflow-hidden">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.04\'%3E%3Ccircle cx=\'30\' cy=\'30\' r=\'30\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]" />
-          <div className="relative flex items-center gap-5">
-            <div className="w-13 h-13 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center backdrop-blur-sm shadow-inner flex-shrink-0" style={{ width: 52, height: 52 }}>
-              <Package className="w-6 h-6 text-white" />
+          <div className="relative flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center backdrop-blur-sm shadow-inner flex-shrink-0">
+              <Package className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <DialogTitle className="text-white text-xl font-bold tracking-tight">
+              <DialogTitle className="text-white text-lg font-bold tracking-tight">
                 {isEdit ? 'Hariri Bidhaa' : 'Ongeza Bidhaa Mpya'}
               </DialogTitle>
-              <p className="text-blue-200 text-sm mt-0.5 font-medium">
+              <p className="text-blue-200 text-xs mt-0.5 font-medium">
                 {isEdit ? 'Sasisha taarifa za bidhaa iliyopo kwenye duka' : 'Jaza fomu hii kuongeza bidhaa mpya kwenye duka'}
               </p>
             </div>
-            <div className="flex items-center gap-2 text-xs text-blue-200/80 bg-white/10 border border-white/15 rounded-full px-3.5 py-1.5 backdrop-blur-sm flex-shrink-0">
+            <div className="flex items-center gap-2 text-xs text-blue-200/80 bg-white/10 border border-white/15 rounded-full px-3 py-1 backdrop-blur-sm flex-shrink-0">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               {isEdit ? 'Hali ya Kuhariri' : 'Bidhaa Mpya'}
             </div>
@@ -242,32 +242,33 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
         </DialogHeader>
 
         {/* ── BODY: two columns ── */}
-        <div className="flex flex-1 min-h-0 bg-[#F8FAFC]">
+        <div className="flex flex-1 min-h-0 overflow-hidden bg-[#F8FAFC]">
 
           {/* LEFT COLUMN */}
-          <div className="flex flex-col w-[55%] border-r border-slate-200/70 overflow-y-auto">
-            <div className="flex-1 px-10 py-8 space-y-6">
+          <div className="flex flex-col w-[55%] border-r border-slate-200/70 overflow-hidden">
+            <div className="flex-1 px-6 py-4 space-y-3">
 
               {/* Basic Info Card */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+              <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="px-5 py-2.5 border-b border-slate-100 bg-slate-50/60">
                   <SectionTitle icon={Tag} title="Taarifa za Msingi" />
                 </div>
-                <div className="px-6 py-5 space-y-5">
-                  <div className="grid grid-cols-2 gap-5">
-                    <div className="space-y-2">
+                <div className="px-5 py-3 space-y-3">
+                  {/* Row 1: Jina + Brand */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
                       <FieldLabel required>Jina la Bidhaa</FieldLabel>
                       <Input
                         value={form.name}
                         onChange={e => set('name', e.target.value)}
                         placeholder="mfano: Nike Air Max 270"
-                        className="h-11 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors"
+                        className="h-10 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors"
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <FieldLabel required>Brand</FieldLabel>
                       <Select value={form.brand} onValueChange={v => set('brand', v ?? '')}>
-                        <SelectTrigger className="h-11 border-slate-200 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors focus:ring-2 focus:ring-[#0D47A1]/10">
+                        <SelectTrigger className="h-10 border-slate-200 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors focus:ring-2 focus:ring-[#0D47A1]/10">
                           <SelectValue placeholder="Chagua brand..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -282,11 +283,12 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-5">
-                    <div className="space-y-2">
+                  {/* Row 2: Kategoria + Kundi la Umri + Jinsia */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1.5">
                       <FieldLabel>Kategoria</FieldLabel>
                       <Select value={form.category} onValueChange={v => set('category', v as Category)}>
-                        <SelectTrigger className="h-11 border-slate-200 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors focus:ring-2 focus:ring-[#0D47A1]/10">
+                        <SelectTrigger className="h-10 border-slate-200 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors focus:ring-2 focus:ring-[#0D47A1]/10">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -296,10 +298,10 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <FieldLabel>Kundi la Umri</FieldLabel>
+                    <div className="space-y-1.5">
+                      <FieldLabel>Umri</FieldLabel>
                       <Select value={form.age_group} onValueChange={v => set('age_group', v as AgeGroup)}>
-                        <SelectTrigger className="h-11 border-slate-200 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors focus:ring-2 focus:ring-[#0D47A1]/10">
+                        <SelectTrigger className="h-10 border-slate-200 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors focus:ring-2 focus:ring-[#0D47A1]/10">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -309,46 +311,44 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="space-y-1.5">
+                      <FieldLabel>Jinsia</FieldLabel>
+                      <Select value={form.gender} onValueChange={v => set('gender', v as Gender)}>
+                        <SelectTrigger className="h-10 border-slate-200 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors focus:ring-2 focus:ring-[#0D47A1]/10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(GENDER_LABELS).map(([k, v]) => (
+                            <SelectItem key={k} value={k} className="text-sm">{v}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <FieldLabel>Jinsia</FieldLabel>
-                    <Select value={form.gender} onValueChange={v => set('gender', v as Gender)}>
-                      <SelectTrigger className="h-11 border-slate-200 bg-white text-sm shadow-sm hover:border-slate-300 transition-colors focus:ring-2 focus:ring-[#0D47A1]/10">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(GENDER_LABELS).map(([k, v]) => (
-                          <SelectItem key={k} value={k} className="text-sm">{v}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
+                  {/* Row 3: Maelezo */}
+                  <div className="space-y-1.5">
                     <FieldLabel>Maelezo</FieldLabel>
                     <textarea
                       value={form.description}
                       onChange={e => set('description', e.target.value)}
-                      rows={4}
+                      rows={2}
                       placeholder="Elezea bidhaa hii kwa undani — vifaa, rangi, ubora..."
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#0D47A1]/10 focus:border-[#0D47A1] placeholder:text-slate-300 transition-colors shadow-sm hover:border-slate-300"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#0D47A1]/10 focus:border-[#0D47A1] placeholder:text-slate-300 transition-colors shadow-sm hover:border-slate-300"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Pricing Card */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+              <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="px-5 py-2.5 border-b border-slate-100 bg-slate-50/60">
                   <SectionTitle icon={DollarSign} title="Bei" />
                 </div>
-                <div className="px-6 py-5 space-y-4">
-
-                  {/* Bei ya Jumla */}
+                <div className="px-5 py-3">
                   <div className="rounded-xl border border-slate-200 overflow-hidden">
                     <div className="grid grid-cols-2 divide-x divide-slate-200">
-                      <div className="px-5 py-4 space-y-2">
+                      <div className="px-4 py-3 space-y-1.5">
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Bei ya Pc Moja</p>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-[#0D47A1] bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded pointer-events-none">TZS</span>
@@ -357,15 +357,15 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
                             value={form.wholesale_price || ''}
                             onChange={e => set('wholesale_price', parseFloat(e.target.value) || 0)}
                             placeholder="0"
-                            className="pl-14 h-11 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm font-semibold"
+                            className="pl-14 h-10 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm font-semibold"
                           />
                         </div>
                       </div>
-                      <div className="px-5 py-4 space-y-2">
+                      <div className="px-4 py-3 space-y-1.5">
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
                           Bei ya Mfuko Mzima {totalPcs > 0 && <span className="text-[#0D47A1]">({totalPcs} pcs)</span>}
                         </p>
-                        <div className={`h-11 rounded-lg flex items-center px-4 gap-2.5 transition-colors ${
+                        <div className={`h-10 rounded-lg flex items-center px-4 gap-2.5 transition-colors ${
                           totalPcs > 0 && form.wholesale_price > 0
                             ? 'bg-[#0D47A1]/5 border border-[#0D47A1]/20'
                             : 'bg-slate-50 border border-slate-100'
@@ -386,80 +386,69 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
               </div>
 
               {/* Size & Stock Card */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+              <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="px-5 py-2.5 border-b border-slate-100 bg-slate-50/60">
                   <SectionTitle icon={Layers} title="Saizi & Stoki" />
                 </div>
-                <div className="px-6 py-5 space-y-4">
-
-                  {/* Inputs: from / to / qty */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
+                <div className="px-5 py-3 space-y-3">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1.5">
                       <FieldLabel required>Namba ya Kwanza</FieldLabel>
                       <Input
                         type="number"
-                        placeholder="mfano: 36"
+                        placeholder="36"
                         value={rangeFrom}
                         onChange={e => setRangeFrom(e.target.value)}
-                        className="h-11 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm shadow-sm text-center font-semibold"
+                        className="h-10 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm shadow-sm text-center font-semibold"
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <FieldLabel required>Namba ya Mwisho</FieldLabel>
                       <Input
                         type="number"
-                        placeholder="mfano: 45"
+                        placeholder="45"
                         value={rangeTo}
                         onChange={e => setRangeTo(e.target.value)}
-                        className="h-11 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm shadow-sm text-center font-semibold"
+                        className="h-10 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm shadow-sm text-center font-semibold"
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <FieldLabel required>Jumla ya Pcs</FieldLabel>
                       <Input
                         type="number"
-                        placeholder="mfano: 30"
+                        placeholder="30"
                         value={rangeQty}
                         onChange={e => setRangeQty(e.target.value)}
-                        className="h-11 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm shadow-sm text-center font-semibold"
+                        className="h-10 border-slate-200 focus:border-[#0D47A1] focus:ring-2 focus:ring-[#0D47A1]/10 bg-white text-sm shadow-sm text-center font-semibold"
                       />
                     </div>
                   </div>
 
-                  {/* Live preview */}
-                  {sizeCount > 0 && (
+                  {sizeCount > 0 ? (
                     <div className="rounded-xl border border-[#0D47A1]/15 bg-[#0D47A1]/4 overflow-hidden">
-                      {/* Saizi badges */}
-                      <div className="px-4 py-3 flex flex-wrap gap-1.5">
+                      <div className="px-3 py-2 flex flex-wrap gap-1">
                         {sizeList.map(s => (
-                          <div key={s} className="w-9 h-9 rounded-lg bg-white border border-[#0D47A1]/20 shadow-sm flex items-center justify-center">
+                          <div key={s} className="w-8 h-8 rounded-lg bg-white border border-[#0D47A1]/20 shadow-sm flex items-center justify-center">
                             <span className="text-xs font-bold text-[#0D47A1]">{s}</span>
                           </div>
                         ))}
                       </div>
-                      {/* Jumla */}
-                      <div className="border-t border-[#0D47A1]/10 px-4 py-3 flex items-center justify-between bg-white/60">
-                        <div className="flex items-center gap-4 text-xs text-slate-500">
+                      <div className="border-t border-[#0D47A1]/10 px-3 py-2 flex items-center justify-between bg-white/60">
+                        <div className="flex items-center gap-3 text-xs text-slate-500">
                           <span>Jumla <strong className="text-slate-700">{totalPcs}</strong> pcs</span>
                           <span>÷</span>
                           <span>Saizi <strong className="text-slate-700">{sizeCount}</strong></span>
                           <span>=</span>
                           <span><strong className="text-slate-700">{qtyPerSize}</strong> kila saizi</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-500">Jumla ya Stoki</span>
-                          <div className="bg-[#0D47A1] text-white text-sm font-bold px-4 py-1.5 rounded-lg shadow-sm">
-                            {totalPcs} pcs
-                          </div>
+                        <div className="bg-[#0D47A1] text-white text-xs font-bold px-3 py-1 rounded-lg shadow-sm">
+                          {totalPcs} pcs
                         </div>
                       </div>
                     </div>
-                  )}
-
-                  {/* Empty hint */}
-                  {sizeCount === 0 && (
-                    <div className="rounded-xl border border-dashed border-slate-200 px-4 py-5 text-center">
-                      <p className="text-xs text-slate-400">Weka namba ya kwanza, ya mwisho, na idadi — saizi na jumla vitaonekana hapa</p>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-slate-200 px-4 py-3 text-center">
+                      <p className="text-xs text-slate-400">Weka namba ya kwanza, ya mwisho, na idadi — saizi vitaonekana hapa</p>
                     </div>
                   )}
                 </div>
@@ -469,12 +458,12 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
           </div>
 
           {/* RIGHT COLUMN */}
-          <div className="flex flex-col w-[45%] overflow-y-auto">
-            <div className="flex-1 px-10 py-8 space-y-6">
+          <div className="flex flex-col w-[45%] overflow-hidden">
+            <div className="flex-1 px-6 py-4 space-y-3">
 
               {/* Images Card */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
+              <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="px-5 py-2.5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
                   <SectionTitle icon={ImageIcon} title="Picha za Bidhaa" />
                   {images.length > 0 && (
                     <span className="text-xs font-semibold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">
@@ -482,7 +471,7 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
                     </span>
                   )}
                 </div>
-                <div className="px-6 py-5 space-y-4">
+                <div className="px-5 py-3 space-y-3">
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -492,154 +481,105 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
                     onChange={e => e.target.files && handleFiles(e.target.files)}
                   />
 
-                  {/* Image Grid — shown when images exist */}
-                  {images.length > 0 && (
-                    <div className="grid grid-cols-3 gap-3">
+                  {images.length > 0 ? (
+                    <div className="grid grid-cols-4 gap-2">
                       {images.map((img, i) => (
                         <div
                           key={i}
-                          className={`relative aspect-square rounded-2xl overflow-hidden bg-slate-100 transition-all group ${
-                            img.error
-                              ? 'ring-2 ring-red-400'
-                              : img.uploading
-                              ? 'ring-2 ring-blue-300'
-                              : 'ring-0 shadow-md hover:shadow-xl hover:scale-[1.02]'
+                          className={`relative aspect-square rounded-xl overflow-hidden bg-slate-100 transition-all group ${
+                            img.error ? 'ring-2 ring-red-400' : img.uploading ? 'ring-2 ring-blue-300' : 'ring-0 shadow-md hover:shadow-xl hover:scale-[1.02]'
                           }`}
                         >
                           {(img.local || img.url) && !img.error && (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={img.local ?? img.url}
-                              alt={img.name}
-                              className={`w-full h-full object-cover transition-all duration-300 ${img.uploading ? 'scale-105 blur-[1px] opacity-60' : 'opacity-100'}`}
-                            />
+                            <img src={img.local ?? img.url} alt={img.name} className={`w-full h-full object-cover transition-all duration-300 ${img.uploading ? 'scale-105 blur-[1px] opacity-60' : 'opacity-100'}`} />
                           )}
                           {img.error && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-red-50">
-                              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                                <X className="w-5 h-5 text-red-500" />
-                              </div>
-                              <p className="text-[10px] text-red-500 font-bold">Imeshindwa</p>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-red-50">
+                              <X className="w-4 h-4 text-red-500" />
+                              <p className="text-[9px] text-red-500 font-bold">Imeshindwa</p>
                             </div>
                           )}
                           {img.uploading && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/70 backdrop-blur-sm">
-                              <div className="relative w-10 h-10">
-                                <svg className="w-10 h-10 -rotate-90" viewBox="0 0 36 36">
-                                  <circle cx="18" cy="18" r="14" fill="none" stroke="#e2e8f0" strokeWidth="3" />
-                                  <circle cx="18" cy="18" r="14" fill="none" stroke="#0D47A1" strokeWidth="3"
-                                    strokeDasharray="88" strokeDashoffset="22" strokeLinecap="round"
-                                    className="animate-[spin_1.5s_linear_infinite]" style={{ transformOrigin: 'center' }} />
-                                </svg>
-                                <CloudUpload className="w-4 h-4 text-[#0D47A1] absolute inset-0 m-auto" />
-                              </div>
-                              <p className="text-[10px] text-[#0D47A1] font-bold">Inapakia...</p>
+                            <div className="absolute inset-0 flex items-center justify-center bg-white/70 backdrop-blur-sm">
+                              <CloudUpload className="w-5 h-5 text-[#0D47A1] animate-pulse" />
                             </div>
                           )}
                           {!img.uploading && !img.error && img.url && (
-                            <div className="absolute bottom-2 left-2 bg-emerald-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow flex items-center gap-0.5">
-                              <Upload className="w-2.5 h-2.5" /> OK
-                            </div>
+                            <div className="absolute bottom-1 left-1 bg-emerald-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-full shadow">OK</div>
                           )}
                           {i === 0 && !img.uploading && !img.error && (
-                            <div className="absolute top-2 left-2 bg-[#0D47A1] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow">
-                              COVER
-                            </div>
+                            <div className="absolute top-1 left-1 bg-[#0D47A1] text-white text-[8px] font-bold px-1 py-0.5 rounded-full shadow">COVER</div>
                           )}
-                          <button
-                            type="button"
-                            onClick={() => removeImage(i)}
-                            className="absolute top-2 right-2 w-7 h-7 bg-black/50 hover:bg-red-500 rounded-full flex items-center justify-center text-white transition-all cursor-pointer opacity-0 group-hover:opacity-100 shadow"
-                          >
-                            <X className="w-3.5 h-3.5" />
+                          <button type="button" onClick={() => removeImage(i)}
+                            className="absolute top-1 right-1 w-5 h-5 bg-black/50 hover:bg-red-500 rounded-full flex items-center justify-center text-white transition-all cursor-pointer opacity-0 group-hover:opacity-100">
+                            <X className="w-3 h-3" />
                           </button>
                         </div>
                       ))}
-                      {/* Add more button */}
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 hover:border-[#0D47A1]/50 hover:bg-[#0D47A1]/4 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer group"
-                      >
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-[#0D47A1]/10 flex items-center justify-center transition-colors">
-                          <Plus className="w-5 h-5 text-slate-400 group-hover:text-[#0D47A1] transition-colors" />
-                        </div>
-                        <span className="text-[10px] text-slate-400 group-hover:text-[#0D47A1] font-semibold transition-colors">Ongeza</span>
+                      <button type="button" onClick={() => fileInputRef.current?.click()}
+                        className="aspect-square rounded-xl border-2 border-dashed border-slate-200 hover:border-[#0D47A1]/50 hover:bg-[#0D47A1]/4 flex flex-col items-center justify-center gap-1 transition-all cursor-pointer group">
+                        <Plus className="w-5 h-5 text-slate-400 group-hover:text-[#0D47A1] transition-colors" />
+                        <span className="text-[9px] text-slate-400 group-hover:text-[#0D47A1] font-semibold">Ongeza</span>
                       </button>
                     </div>
-                  )}
-
-                  {/* Drop Zone — shown when no images OR always below */}
-                  {images.length === 0 && (
+                  ) : (
                     <div
                       onDragOver={e => { e.preventDefault(); setDragging(true) }}
                       onDragLeave={() => setDragging(false)}
                       onDrop={e => { e.preventDefault(); setDragging(false); handleFiles(e.dataTransfer.files) }}
                       onClick={() => fileInputRef.current?.click()}
-                      className={`border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-200 ${
-                        dragging
-                          ? 'border-[#0D47A1] bg-[#0D47A1]/5 scale-[1.01]'
-                          : 'border-slate-200 hover:border-[#0D47A1]/40 hover:bg-slate-50/80'
+                      className={`border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 ${
+                        dragging ? 'border-[#0D47A1] bg-[#0D47A1]/5 scale-[1.01]' : 'border-slate-200 hover:border-[#0D47A1]/40 hover:bg-slate-50/80'
                       }`}
                     >
-                      <div className="flex flex-col items-center gap-3 py-10 px-6 text-center">
-                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-200 ${
-                          dragging ? 'bg-[#0D47A1]/15 scale-110' : 'bg-slate-100'
-                        }`}>
-                          <CloudUpload className={`w-8 h-8 transition-colors ${dragging ? 'text-[#0D47A1]' : 'text-slate-400'}`} />
+                      <div className="flex flex-col items-center gap-2 py-6 px-4 text-center">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ${dragging ? 'bg-[#0D47A1]/15 scale-110' : 'bg-slate-100'}`}>
+                          <CloudUpload className={`w-6 h-6 transition-colors ${dragging ? 'text-[#0D47A1]' : 'text-slate-400'}`} />
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-slate-700">
-                            {dragging ? '✨ Acha picha hapa!' : 'Buruta picha hapa'}
-                          </p>
-                          <p className="text-xs text-slate-400 mt-1">au <span className="text-[#0D47A1] font-semibold underline underline-offset-2">bonyeza kuchagua kutoka kwenye kifaa</span></p>
+                          <p className="text-sm font-bold text-slate-700">{dragging ? 'Acha picha hapa!' : 'Buruta picha hapa'}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">au <span className="text-[#0D47A1] font-semibold underline underline-offset-2">bonyeza kuchagua</span></p>
                         </div>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-300 font-semibold uppercase tracking-widest">
-                          <span>JPG</span><span>·</span><span>PNG</span><span>·</span><span>WebP</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 text-emerald-600 text-[10px] font-semibold px-3 py-1.5 rounded-full">
-                          <Upload className="w-3 h-3" /> Picha zinapunguzwa kiotomatiki — haraka zaidi
+                        <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 text-emerald-600 text-[10px] font-semibold px-3 py-1 rounded-full">
+                          <Upload className="w-3 h-3" /> Zinapunguzwa kiotomatiki
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Upload progress bar */}
                   {uploadingCount > 0 && (
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-center gap-3">
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 flex items-center gap-3">
                       <Loader2 className="w-4 h-4 text-[#0D47A1] animate-spin flex-shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-xs font-bold text-[#0D47A1]">Inapakia picha {uploadingCount}...</p>
-                        <p className="text-[10px] text-blue-400 mt-0.5">Tafadhali subiri kabla ya kuhifadhi</p>
-                      </div>
+                      <p className="text-xs font-bold text-[#0D47A1]">Inapakia picha {uploadingCount}... subiri</p>
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Settings Card */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+              <div className="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="px-5 py-2.5 border-b border-slate-100 bg-slate-50/60">
                   <SectionTitle icon={Settings2} title="Mipangilio ya Bidhaa" />
                 </div>
-                <div className="px-6 py-5 space-y-3">
+                <div className="px-5 py-3 space-y-2">
                   {([
-                    { key: 'active', label: 'Inauzwa Sasa', desc: 'Bidhaa inaonekana kwa wateja', dot: 'bg-emerald-500', activeBg: 'bg-emerald-50/60 border-emerald-100' },
-                    { key: 'is_trending', label: 'Inabweka', desc: 'Bidhaa inayouzika zaidi dukani', dot: 'bg-orange-500', activeBg: 'bg-orange-50/60 border-orange-100' },
-                    { key: 'is_new', label: 'Arrival Mpya', desc: 'Bidhaa mpya iliyofika dukani', dot: 'bg-blue-500', activeBg: 'bg-blue-50/60 border-blue-100' },
+                    { key: 'active',      label: 'Inauzwa Sasa',  desc: 'Bidhaa inaonekana kwa wateja',      dot: 'bg-emerald-500', activeBg: 'bg-emerald-50/60 border-emerald-100' },
+                    { key: 'is_trending', label: 'Inabweka',      desc: 'Bidhaa inayouzika zaidi dukani',    dot: 'bg-orange-500', activeBg: 'bg-orange-50/60 border-orange-100' },
+                    { key: 'is_new',      label: 'Arrival Mpya',  desc: 'Bidhaa mpya iliyofika dukani',      dot: 'bg-blue-500',   activeBg: 'bg-blue-50/60 border-blue-100' },
                   ] as const).map(({ key, label, desc, dot, activeBg }) => (
                     <div
                       key={key}
-                      className={`flex items-center justify-between px-5 py-3.5 rounded-xl border transition-all duration-200 cursor-pointer ${
+                      className={`flex items-center justify-between px-4 py-2.5 rounded-xl border transition-all duration-200 cursor-pointer ${
                         form[key] ? activeBg : 'bg-slate-50/40 border-slate-100 hover:border-slate-200'
                       }`}
                       onClick={() => set(key, !form[key] as boolean)}
                     >
-                      <div className="flex items-center gap-3.5">
-                        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition-colors ${form[key] ? dot : 'bg-slate-300'}`} />
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 transition-colors ${form[key] ? dot : 'bg-slate-300'}`} />
                         <div>
                           <p className="text-sm font-semibold text-slate-700">{label}</p>
-                          <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
+                          <p className="text-xs text-slate-400">{desc}</p>
                         </div>
                       </div>
                       <Switch
@@ -658,7 +598,7 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
         </div>
 
         {/* ── FOOTER ── */}
-        <div className="flex-shrink-0 flex items-center justify-between px-10 py-4 border-t border-slate-200/80 bg-white shadow-[0_-1px_0_0_rgba(0,0,0,0.04)]">
+        <div className="flex-shrink-0 flex items-center justify-between px-8 py-3 border-t border-slate-200/80 bg-white shadow-[0_-1px_0_0_rgba(0,0,0,0.04)]">
           <div className="flex items-center gap-2.5 text-xs text-slate-400">
             {uploadingCount > 0 ? (
               <>
@@ -676,14 +616,14 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
             <Button
               variant="outline"
               onClick={onClose}
-              className="h-10 px-6 text-sm cursor-pointer border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 rounded-xl font-medium"
+              className="h-9 px-6 text-sm cursor-pointer border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 rounded-xl font-medium"
             >
               Ghairi
             </Button>
             <Button
               onClick={handleSave}
               disabled={saving || uploadingCount > 0}
-              className="h-10 px-8 text-sm font-semibold bg-[#0D47A1] hover:bg-[#0a3880] cursor-pointer shadow-md disabled:opacity-50 gap-2.5 rounded-xl transition-all hover:shadow-lg hover:-translate-y-px active:translate-y-0"
+              className="h-9 px-8 text-sm font-semibold bg-[#0D47A1] hover:bg-[#0a3880] cursor-pointer shadow-md disabled:opacity-50 gap-2.5 rounded-xl transition-all hover:shadow-lg hover:-translate-y-px active:translate-y-0"
             >
               {saving
                 ? <><Loader2 className="w-4 h-4 animate-spin" />Inahifadhi...</>
