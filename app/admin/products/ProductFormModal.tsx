@@ -77,7 +77,8 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
   const qty = parseInt(rangeQty) || 0
   const sizeCount = (from > 0 && to >= from) ? (to - from + 1) : 0
   const totalPcs = qty
-  const qtyPerSize = sizeCount > 0 ? Math.floor(totalPcs / sizeCount) : 0
+  const qtyFloor = sizeCount > 0 ? Math.floor(totalPcs / sizeCount) : 0
+  const remainder = sizeCount > 0 ? totalPcs % sizeCount : 0
   const sizeList = sizeCount > 0 ? Array.from({ length: sizeCount }, (_, i) => from + i) : []
 
   useEffect(() => {
@@ -188,7 +189,7 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
     setSaving(true)
     try {
       const stock: Record<string, number> = {}
-      sizeList.forEach(size => { stock[String(size)] = qtyPerSize })
+      sizeList.forEach((size, idx) => { stock[String(size)] = idx < remainder ? qtyFloor + 1 : qtyFloor })
       const finalImages = images.filter(i => i.url && !i.error).map(i => i.url)
       const payload = { ...form, stock, images: finalImages }
       const supabase = createClient()
@@ -514,11 +515,14 @@ export default function ProductFormModal({ open, product, brands, onClose, onSav
                       </div>
                       <div className="border-t border-[#0D47A1]/10 px-3 py-2 flex items-center justify-between bg-white/60">
                         <div className="flex items-center gap-3 text-xs text-slate-500">
-                          <span>Jumla <strong className="text-slate-700">{totalPcs}</strong> pcs</span>
-                          <span>÷</span>
                           <span>Saizi <strong className="text-slate-700">{sizeCount}</strong></span>
-                          <span>=</span>
-                          <span><strong className="text-slate-700">{qtyPerSize}</strong> kila saizi</span>
+                          <span>·</span>
+                          <span>
+                            {remainder === 0
+                              ? <><strong className="text-slate-700">{qtyFloor}</strong> kila saizi</>
+                              : <><strong className="text-slate-700">{qtyFloor}–{qtyFloor + 1}</strong> kila saizi</>
+                            }
+                          </span>
                         </div>
                         <div className="bg-[#0D47A1] text-white text-xs font-bold px-3 py-1 rounded-lg shadow-sm">
                           {totalPcs} pcs
